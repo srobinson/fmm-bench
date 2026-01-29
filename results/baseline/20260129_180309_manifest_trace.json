@@ -1,0 +1,146 @@
+{
+  "variant": "manifest",
+  "task": "Find all files that export authentication-related functions. List each file path and the specific exports.",
+  "hint": false,
+  "duration_seconds": 42,
+  "tool_calls": [
+    {
+      "tool": "Grep",
+      "id": "toolu_01SaNp461v5o2WLRw2MRUxss",
+      "input": {
+        "pattern": "export.*auth",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_01CGrtAh7CHbki9LUwX7vGxP",
+      "input": {
+        "pattern": "export.*login|export.*logout|export.*signin|export.*signout",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_019Xj3MtrSv4jkJchvuL553E",
+      "input": {
+        "pattern": "export.*token|export.*session|export.*credential",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01B8wDn89nMigT7q6AN7FsR8",
+      "input": {
+        "file_path": "src/auth/jwt.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01R2JskSPxPoR2A9nxxSkZmW",
+      "input": {
+        "file_path": "src/auth/session.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01Pyp5R4dynTtAkRpBv3RBSk",
+      "input": {
+        "file_path": "src/api/middleware/auth-middleware.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01KY1C8mqZpsBm4y3a68basA",
+      "input": {
+        "file_path": "src/api/controllers/auth-controller.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_018DT3kLVnhRJeNi9d8epwuz",
+      "input": {
+        "file_path": "src/api/routes/auth-routes.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_017F8ivEtFo9p3YqWwAHPKPh",
+      "input": {
+        "file_path": "src/types/index.ts"
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_01S2uysX1XEFdLBNzJvPFCnn",
+      "input": {
+        "pattern": "export.*permission",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01MLcKQifnPfrWKK3CY2Kv8G",
+      "input": {
+        "file_path": "src/auth/permissions.ts"
+      }
+    }
+  ],
+  "tool_calls_count": 11,
+  "files_read": [
+    "src/auth/jwt.ts",
+    "src/auth/session.ts",
+    "src/api/middleware/auth-middleware.ts",
+    "src/api/controllers/auth-controller.ts",
+    "src/api/routes/auth-routes.ts",
+    "src/types/index.ts",
+    "src/auth/permissions.ts"
+  ],
+  "total_lines_read": 14000,
+  "glob_patterns": [],
+  "grep_patterns": [
+    "export.*auth",
+    "export.*login|export.*logout|export.*signin|export.*signout",
+    "export.*token|export.*session|export.*credential",
+    "export.*permission"
+  ],
+  "discovered_fmm": false,
+  "intentionally_explored_fmm": false,
+  "fmm_in_tool_output": false,
+  "used_manifest": false,
+  "tokens_in": 86477,
+  "tokens_out": 1613,
+  "cost_usd": 0.090256,
+  "final_answer": "Perfect! Now I have a complete picture of all authentication-related exports in the codebase. Here's the comprehensive list:\n\n## Authentication-Related Files and Their Exports\n\n### 1. **`src/auth/jwt.ts`**\n   - **`generateAccessToken(userId, email, role)`** - Generates JWT access tokens\n   - **`generateRefreshToken(userId, email, role)`** - Generates JWT refresh tokens\n   - **`verifyToken(token, isRefresh)`** - Verifies and validates JWT tokens\n   - **`decodeToken(token)`** - Decodes JWT token without verification\n   - **`createTokenPair(userId, email, role)`** - Creates both access and refresh tokens\n\n### 2. **`src/auth/session.ts`**\n   - **`SessionManager`** (class) - Manages user sessions with methods:\n     - `create()` - Creates a new session\n     - `destroy()` - Destroys a session\n     - `refresh()` - Refreshes session tokens\n     - `validate()` - Validates a session\n     - `listActive()` - Lists active sessions for a user\n\n### 3. **`src/auth/permissions.ts`**\n   - **`Permission`** (enum) - Defines available permissions\n   - **`RolePermissions`** - Maps roles to their permissions\n   - **`hasPermission(role, permission)`** - Checks if a role has a permission\n   - **`requirePermission(role, permission)`** - Throws error if permission missing\n   - **`isAdmin(role)`** - Checks if a role is admin\n\n### 4. **`src/api/middleware/auth-middleware.ts`**\n   - **`authenticateRequest()`** - Middleware to require authentication\n   - **`requireRole(...roles)`** - Middleware to require specific roles\n   - **`optionalAuth()`** - Middleware for optional authentication\n   - **`rateLimitAuth(maxAttempts, windowMs)`** - Rate limiting for auth endpoints\n\n### 5. **`src/api/controllers/auth-controller.ts`**\n   - **`AuthController`** (class) - Main authentication controller with methods:\n     - `login()` - User login\n     - `signup()` - User registration\n     - `logout()` - User logout\n     - `refreshToken()` - Refresh authentication tokens\n     - `forgotPassword()` - Initiate password reset\n     - `resetPassword()` - Complete password reset\n\n### 6. **`src/api/routes/auth-routes.ts`**\n   - **`registerAuthRoutes(router)`** - Registers all authentication routes\n\n### 7. **`src/types/index.ts`** (Type Definitions)\n   - **`AuthTokens`** (interface) - Token pair structure\n   - **`LoginCredentials`** (interface) - Login request structure\n   - **`SignupData`** (interface) - Signup request structure\n   - **`JwtPayload`** (interface) - JWT payload structure\n   - **`UserRole`** (enum) - User role types\n\nThese files form a complete authentication system with JWT token management, session handling, role-based permissions, and API controllers/routes.",
+  "num_turns": 12,
+  "model_usage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 123,
+      "outputTokens": 73,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.000488,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    },
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 261,
+      "outputTokens": 1613,
+      "cacheReadInputTokens": 86216,
+      "cacheCreationInputTokens": 10380,
+      "webSearchRequests": 0,
+      "costUSD": 0.08976780000000001,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    }
+  }
+}

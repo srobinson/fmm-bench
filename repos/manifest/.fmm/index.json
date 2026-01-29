@@ -1,0 +1,277 @@
+{
+  "version": "1.0",
+  "generated": "2026-01-29T10:29:25.433774Z",
+  "files": {
+    "src/config/database.ts": {
+      "exports": [
+        "DatabaseConnection",
+        "getConnection",
+        "initializeDatabase"
+      ],
+      "imports": [],
+      "dependencies": [
+        "./env"
+      ],
+      "loc": 71
+    },
+    "src/utils/validators.ts": {
+      "exports": [
+        "sanitizeInput",
+        "validateEmail",
+        "validatePassword",
+        "validateUsername"
+      ],
+      "imports": [],
+      "dependencies": [],
+      "loc": 50
+    },
+    "src/utils/hash.ts": {
+      "exports": [
+        "comparePassword",
+        "generateSalt",
+        "hashPassword"
+      ],
+      "imports": [
+        "crypto"
+      ],
+      "dependencies": [],
+      "loc": 37
+    },
+    "src/api/middleware/auth-middleware.ts": {
+      "exports": [
+        "authenticateRequest",
+        "optionalAuth",
+        "rateLimitAuth",
+        "requireRole"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../../auth/jwt",
+        "../../auth/permissions",
+        "../../types",
+        "../../utils/logger"
+      ],
+      "loc": 94
+    },
+    "src/api/models/audit-log-model.ts": {
+      "exports": [
+        "AuditLogModel"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../../config/database"
+      ],
+      "loc": 76
+    },
+    "src/api/routes/auth-routes.ts": {
+      "exports": [
+        "registerAuthRoutes"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../controllers/auth-controller",
+        "../middleware/auth-middleware"
+      ],
+      "loc": 48
+    },
+    "src/auth/permissions.ts": {
+      "exports": [
+        "RolePermissions",
+        "hasPermission",
+        "isAdmin",
+        "requirePermission"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../types"
+      ],
+      "loc": 47
+    },
+    "src/api/models/user-model.ts": {
+      "exports": [
+        "UserModel"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../../config/database",
+        "../../types",
+        "../../utils/logger"
+      ],
+      "loc": 98
+    },
+    "src/auth/jwt.ts": {
+      "exports": [
+        "createTokenPair",
+        "decodeToken",
+        "generateAccessToken",
+        "generateRefreshToken",
+        "verifyToken"
+      ],
+      "imports": [
+        "crypto"
+      ],
+      "dependencies": [
+        "../config/env",
+        "../types"
+      ],
+      "loc": 73
+    },
+    "src/auth/session.ts": {
+      "exports": [
+        "SessionManager"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../config/database",
+        "../types",
+        "../utils/logger",
+        "./jwt"
+      ],
+      "loc": 95
+    },
+    "src/index.ts": {
+      "exports": [
+        "startServer"
+      ],
+      "imports": [],
+      "dependencies": [
+        "./api/routes",
+        "./config/database",
+        "./config/env",
+        "./utils/logger"
+      ],
+      "loc": 55
+    },
+    "src/api/controllers/user-controller.ts": {
+      "exports": [
+        "UserController"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../../auth/permissions",
+        "../../types",
+        "../../utils/hash",
+        "../../utils/validators",
+        "../models/audit-log-model",
+        "../models/user-model"
+      ],
+      "loc": 79
+    },
+    "src/api/routes/index.ts": {
+      "exports": [
+        "registerAllRoutes"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../../utils/logger",
+        "./auth-routes",
+        "./user-routes"
+      ],
+      "loc": 25
+    },
+    "src/types/index.ts": {
+      "exports": [
+        "ApiResponse",
+        "AuthTokens",
+        "JwtPayload",
+        "LoginCredentials",
+        "PaginatedResponse",
+        "SignupData",
+        "User"
+      ],
+      "imports": [],
+      "dependencies": [],
+      "loc": 66
+    },
+    "src/config/env.ts": {
+      "exports": [
+        "config"
+      ],
+      "imports": [],
+      "dependencies": [],
+      "loc": 20
+    },
+    "src/utils/logger.ts": {
+      "exports": [
+        "Logger"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../config/env"
+      ],
+      "loc": 54
+    },
+    "src/api/controllers/auth-controller.ts": {
+      "exports": [
+        "AuthController"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../../auth/jwt",
+        "../../auth/session",
+        "../../types",
+        "../../utils/hash",
+        "../../utils/logger",
+        "../../utils/validators",
+        "../models/audit-log-model",
+        "../models/user-model"
+      ],
+      "loc": 84
+    },
+    "src/api/routes/user-routes.ts": {
+      "exports": [
+        "registerUserRoutes"
+      ],
+      "imports": [],
+      "dependencies": [
+        "../../types",
+        "../controllers/user-controller",
+        "../middleware/auth-middleware"
+      ],
+      "loc": 50
+    }
+  },
+  "exportIndex": {
+    "startServer": "src/index.ts",
+    "UserModel": "src/api/models/user-model.ts",
+    "AuthController": "src/api/controllers/auth-controller.ts",
+    "hasPermission": "src/auth/permissions.ts",
+    "isAdmin": "src/auth/permissions.ts",
+    "User": "src/types/index.ts",
+    "RolePermissions": "src/auth/permissions.ts",
+    "optionalAuth": "src/api/middleware/auth-middleware.ts",
+    "SessionManager": "src/auth/session.ts",
+    "requireRole": "src/api/middleware/auth-middleware.ts",
+    "Logger": "src/utils/logger.ts",
+    "requirePermission": "src/auth/permissions.ts",
+    "initializeDatabase": "src/config/database.ts",
+    "sanitizeInput": "src/utils/validators.ts",
+    "validatePassword": "src/utils/validators.ts",
+    "validateUsername": "src/utils/validators.ts",
+    "ApiResponse": "src/types/index.ts",
+    "verifyToken": "src/auth/jwt.ts",
+    "decodeToken": "src/auth/jwt.ts",
+    "generateSalt": "src/utils/hash.ts",
+    "validateEmail": "src/utils/validators.ts",
+    "PaginatedResponse": "src/types/index.ts",
+    "registerUserRoutes": "src/api/routes/user-routes.ts",
+    "authenticateRequest": "src/api/middleware/auth-middleware.ts",
+    "rateLimitAuth": "src/api/middleware/auth-middleware.ts",
+    "AuditLogModel": "src/api/models/audit-log-model.ts",
+    "JwtPayload": "src/types/index.ts",
+    "SignupData": "src/types/index.ts",
+    "generateRefreshToken": "src/auth/jwt.ts",
+    "DatabaseConnection": "src/config/database.ts",
+    "comparePassword": "src/utils/hash.ts",
+    "registerAllRoutes": "src/api/routes/index.ts",
+    "getConnection": "src/config/database.ts",
+    "AuthTokens": "src/types/index.ts",
+    "hashPassword": "src/utils/hash.ts",
+    "createTokenPair": "src/auth/jwt.ts",
+    "generateAccessToken": "src/auth/jwt.ts",
+    "config": "src/config/env.ts",
+    "LoginCredentials": "src/types/index.ts",
+    "registerAuthRoutes": "src/api/routes/auth-routes.ts",
+    "UserController": "src/api/controllers/user-controller.ts"
+  }
+}

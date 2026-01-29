@@ -1,0 +1,159 @@
+{
+  "variant": "manifest",
+  "task": "Find all files that export authentication-related functions. List each file path and the specific exports.",
+  "hint": false,
+  "duration_seconds": 42,
+  "tool_calls": [
+    {
+      "tool": "Grep",
+      "id": "toolu_01DvCuYLGQYwRZmvSdhGdkxw",
+      "input": {
+        "pattern": "(export.*auth|export.*login|export.*logout|export.*signin|export.*signup|export.*token|export.*session|export.*credential|export.*password|export.*authenticate)",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_0136MsZcURB6yPAoEHXmC2yN",
+      "input": {
+        "pattern": "(export\\s+(function|const|class|type|interface).*[Aa]uth|export\\s+(function|const|class|type|interface).*[Ll]ogin|export\\s+(function|const|class|type|interface).*[Tt]oken|export\\s+(function|const|class|type|interface).*[Ss]ession)",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01XoNDK2518M4FvsDDrLDYnt",
+      "input": {
+        "file_path": "src/auth/jwt.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01Qfq5FwSEcxbtVR9CN3Crmm",
+      "input": {
+        "file_path": "src/auth/session.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01AQh7ZAJpAcuUfpemcN71QJ",
+      "input": {
+        "file_path": "src/api/middleware/auth-middleware.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01HgXFbu1FKBoWfFLpNKceiw",
+      "input": {
+        "file_path": "src/api/controllers/auth-controller.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_011DCZ7xhV4oUr8bGc49Hm9T",
+      "input": {
+        "file_path": "src/api/routes/auth-routes.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_012apYLeEhCrF1mLQHZGJ9jN",
+      "input": {
+        "file_path": "src/utils/hash.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01W7vAPLjujMe27WfAhsRCYR",
+      "input": {
+        "file_path": "src/utils/validators.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01DvSmC136uE6CWBVSLqhR27",
+      "input": {
+        "file_path": "src/types/index.ts"
+      }
+    },
+    {
+      "tool": "Glob",
+      "id": "toolu_01JD1eFCnKR5pRL8gzXpJTbR",
+      "input": {
+        "pattern": "**/auth/**/*.{ts,tsx,js,jsx}"
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_01NxbKLkFtgjTNuhkVBV4Zs5",
+      "input": {
+        "pattern": "export.*permission",
+        "output_mode": "files_with_matches",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01CLqgJewc39XZNv6bLsAjrF",
+      "input": {
+        "file_path": "src/auth/permissions.ts"
+      }
+    }
+  ],
+  "tool_calls_count": 13,
+  "files_read": [
+    "src/auth/jwt.ts",
+    "src/auth/session.ts",
+    "src/api/middleware/auth-middleware.ts",
+    "src/api/controllers/auth-controller.ts",
+    "src/api/routes/auth-routes.ts",
+    "src/utils/hash.ts",
+    "src/utils/validators.ts",
+    "src/types/index.ts",
+    "src/auth/permissions.ts"
+  ],
+  "total_lines_read": 18000,
+  "glob_patterns": [
+    "**/auth/**/*.{ts,tsx,js,jsx}"
+  ],
+  "grep_patterns": [
+    "(export.*auth|export.*login|export.*logout|export.*signin|export.*signup|export.*token|export.*session|export.*credential|export.*password|export.*authenticate)",
+    "(export\\s+(function|const|class|type|interface).*[Aa]uth|export\\s+(function|const|class|type|interface).*[Ll]ogin|export\\s+(function|const|class|type|interface).*[Tt]oken|export\\s+(function|const|class|type|interface).*[Ss]ession)",
+    "export.*permission"
+  ],
+  "discovered_fmm": false,
+  "intentionally_explored_fmm": false,
+  "fmm_in_tool_output": false,
+  "used_manifest": false,
+  "tokens_in": 90730,
+  "tokens_out": 1983,
+  "cost_usd": 0.104132,
+  "final_answer": "Perfect! Now I have a complete view of all authentication-related exports. Let me provide you with a comprehensive summary:\n\n## Authentication-Related Files and Their Exports\n\n### **1. `src/auth/jwt.ts`**\n**Functions:**\n- `generateAccessToken(userId: string, email: string, role: UserRole): string` - Generates JWT access tokens\n- `generateRefreshToken(userId: string, email: string, role: UserRole): string` - Generates JWT refresh tokens\n- `verifyToken(token: string, isRefresh = false): JwtPayload | null` - Verifies and validates JWT tokens\n- `decodeToken(token: string): JwtPayload | null` - Decodes JWT tokens without verification\n- `createTokenPair(userId: string, email: string, role: UserRole): AuthTokens` - Creates access and refresh token pair\n\n---\n\n### **2. `src/auth/session.ts`**\n**Classes:**\n- `SessionManager` - Manages user sessions with methods:\n  - `create()` - Creates new session\n  - `destroy()` - Destroys session\n  - `refresh()` - Refreshes session tokens\n  - `validate()` - Validates session\n  - `listActive()` - Lists active sessions for a user\n\n---\n\n### **3. `src/auth/permissions.ts`**\n**Enums:**\n- `Permission` - Defines permission types (ReadOwnProfile, UpdateOwnProfile, etc.)\n\n**Constants:**\n- `RolePermissions` - Maps roles to their permissions\n\n**Functions:**\n- `hasPermission(role: UserRole, permission: Permission): boolean` - Checks if role has permission\n- `requirePermission(role: UserRole, permission: Permission): void` - Throws error if permission missing\n- `isAdmin(role: UserRole): boolean` - Checks if role is admin\n\n---\n\n### **4. `src/api/middleware/auth-middleware.ts`**\n**Functions:**\n- `authenticateRequest()` - Middleware to require authentication\n- `requireRole(...roles: UserRole[])` - Middleware to require specific roles\n- `optionalAuth()` - Middleware for optional authentication\n- `rateLimitAuth(maxAttempts = 5, windowMs = 900000)` - Rate limiting middleware\n\n---\n\n### **5. `src/api/controllers/auth-controller.ts`**\n**Classes:**\n- `AuthController` - Handles authentication operations with methods:\n  - `login()` - User login\n  - `signup()` - User registration\n  - `logout()` - User logout\n  - `refreshToken()` - Token refresh\n  - `forgotPassword()` - Password reset request\n  - `resetPassword()` - Password reset\n\n---\n\n### **6. `src/api/routes/auth-routes.ts`**\n**Functions:**\n- `registerAuthRoutes(router: Router): void` - Registers all authentication routes\n\n---\n\n### **7. `src/utils/hash.ts`**\n**Functions:**\n- `generateSalt(): string` - Generates cryptographic salt\n- `hashPassword(password: string): Promise<string>` - Hashes passwords using scrypt\n- `comparePassword(password: string, storedHash: string): Promise<boolean>` - Compares password with hash\n\n---\n\n### **8. `src/utils/validators.ts`**\n**Functions:**\n- `validateEmail(email: string): ValidationResult` - Validates email format\n- `validatePassword(password: string): ValidationResult` - Validates password strength\n- `validateUsername(username: string): ValidationResult` - Validates username format\n- `sanitizeInput(input: string): string` - Sanitizes user input\n\n---\n\n### **9. `src/types/index.ts`**\n**Interfaces/Types:**\n- `AuthTokens` - Token pair structure\n- `LoginCredentials` - Login request data\n- `SignupData` - Signup request data\n- `JwtPayload` - JWT token payload structure\n- `UserRole` - User role enum\n- `User` - User entity structure\n\n---\n\nThis codebase has a well-organized authentication system with JWT-based token authentication, session management, role-based access control, password hashing, and comprehensive validation.",
+  "num_turns": 14,
+  "model_usage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 123,
+      "outputTokens": 82,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.000533,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    },
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 29,
+      "outputTokens": 1983,
+      "cacheReadInputTokens": 90701,
+      "cacheCreationInputTokens": 12415,
+      "webSearchRequests": 0,
+      "costUSD": 0.10359855,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    }
+  }
+}
