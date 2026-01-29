@@ -1,0 +1,53 @@
+{
+  "variant": "manifest",
+  "task": "Find all files that export authentication-related functions. List each file path and the specific exports.",
+  "hint": false,
+  "duration_seconds": 0,
+  "tool_calls": [
+    {
+      "tool": "Read",
+      "id": "toolu_01GVxYtgCrwzY7eVPqCvXfEY",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/.fmm/index.json"
+      }
+    }
+  ],
+  "tool_calls_count": 1,
+  "files_read": [
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/.fmm/index.json"
+  ],
+  "total_lines_read": 2000,
+  "glob_patterns": [],
+  "grep_patterns": [],
+  "discovered_fmm": true,
+  "intentionally_explored_fmm": true,
+  "fmm_in_tool_output": true,
+  "used_manifest": true,
+  "tokens_in": 30145,
+  "tokens_out": 492,
+  "cost_usd": 0.046556,
+  "final_answer": "Perfect! Based on the FMM manifest, here are all files that export authentication-related functions:\n\n## Authentication-Related Exports\n\n### **src/auth/jwt.ts**\n- `createTokenPair`\n- `decodeToken`\n- `generateAccessToken`\n- `generateRefreshToken`\n- `verifyToken`\n\n### **src/auth/session.ts**\n- `SessionManager`\n\n### **src/auth/permissions.ts**\n- `RolePermissions`\n- `hasPermission`\n- `isAdmin`\n- `requirePermission`\n\n### **src/api/middleware/auth-middleware.ts**\n- `authenticateRequest`\n- `optionalAuth`\n- `rateLimitAuth`\n- `requireRole`\n\n### **src/api/controllers/auth-controller.ts**\n- `AuthController`\n\n### **src/api/routes/auth-routes.ts**\n- `registerAuthRoutes`\n\n### **src/utils/hash.ts** (password security)\n- `comparePassword`\n- `generateSalt`\n- `hashPassword`\n\n### **src/utils/validators.ts** (auth validation)\n- `validateEmail`\n- `validatePassword`\n- `validateUsername`\n\n### **src/types/index.ts** (auth types)\n- `AuthTokens`\n- `JwtPayload`\n- `LoginCredentials`\n- `SignupData`\n\n---\n\n**Summary:** 9 files with 28 authentication-related exports covering JWT handling, sessions, permissions, middleware, controllers, password hashing, validation, and type definitions.",
+  "num_turns": 2,
+  "model_usage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 123,
+      "outputTokens": 89,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0005679999999999999,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    },
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 8,
+      "outputTokens": 492,
+      "cacheReadInputTokens": 30137,
+      "cacheCreationInputTokens": 7878,
+      "webSearchRequests": 0,
+      "costUSD": 0.0459876,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    }
+  }
+}

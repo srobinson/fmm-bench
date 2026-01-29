@@ -1,0 +1,137 @@
+{
+  "variant": "manifest",
+  "task": "Find all files that export authentication-related functions. List each file path and the specific exports.",
+  "hint": false,
+  "duration_seconds": 35,
+  "tool_calls": [
+    {
+      "tool": "Grep",
+      "id": "toolu_014ydTX2ikx3DJesWVfFcjFJ",
+      "input": {
+        "pattern": "(export.*auth|export.*login|export.*logout|export.*signin|export.*signup|export.*authenticate|export.*token|export.*session|export.*password|export.*credential)",
+        "output_mode": "content",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Glob",
+      "id": "toolu_01YN5dHenx2BJucDechPRMsj",
+      "input": {
+        "pattern": "**/*auth*.{ts,tsx,js,jsx}"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01UcZMNYfYDBC67wNREvnZdL",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/jwt.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01WogMfqBr4189LNeCy3YvVH",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/session.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01LFfyUFRFDxPXzjvgjSnzDa",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/middleware/auth-middleware.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01TzjpqLo5RkLQUUJ3Keqks6",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/controllers/auth-controller.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01QmTnYNdybGBA5wyC6XJ4eg",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/routes/auth-routes.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_012nyM6je3kw8643758Wtzik",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/utils/hash.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01XwjoLNLU2bbRorzq7uGcW6",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/utils/validators.ts"
+      }
+    },
+    {
+      "tool": "Glob",
+      "id": "toolu_01FywejP3swVsQVweAVAg8TA",
+      "input": {
+        "pattern": "**/permissions*.{ts,tsx,js,jsx}"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_013PUNAgNQs1RPGrPmEW8EZx",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/permissions.ts"
+      }
+    }
+  ],
+  "tool_calls_count": 11,
+  "files_read": [
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/jwt.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/session.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/middleware/auth-middleware.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/controllers/auth-controller.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/routes/auth-routes.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/utils/hash.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/utils/validators.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/permissions.ts"
+  ],
+  "total_lines_read": 16000,
+  "glob_patterns": [
+    "**/*auth*.{ts,tsx,js,jsx}",
+    "**/permissions*.{ts,tsx,js,jsx}"
+  ],
+  "grep_patterns": [
+    "(export.*auth|export.*login|export.*logout|export.*signin|export.*signup|export.*authenticate|export.*token|export.*session|export.*password|export.*credential)"
+  ],
+  "discovered_fmm": false,
+  "intentionally_explored_fmm": false,
+  "fmm_in_tool_output": false,
+  "used_manifest": false,
+  "tokens_in": 88464,
+  "tokens_out": 1733,
+  "cost_usd": 0.096267,
+  "final_answer": "Perfect! Now let me compile a comprehensive list of all authentication-related exports:\n\n## Authentication-Related Files and Exports\n\nHere's a complete list of all files that export authentication-related functions in your TypeScript codebase:\n\n### 1. **`src/auth/jwt.ts`**\nJWT token generation and verification functions:\n- `generateAccessToken(userId: string, email: string, role: UserRole): string`\n- `generateRefreshToken(userId: string, email: string, role: UserRole): string`\n- `verifyToken(token: string, isRefresh = false): JwtPayload | null`\n- `decodeToken(token: string): JwtPayload | null`\n- `createTokenPair(userId: string, email: string, role: UserRole): AuthTokens`\n\n### 2. **`src/auth/session.ts`**\nSession management class:\n- `SessionManager` (class with methods: `create`, `destroy`, `refresh`, `validate`, `listActive`)\n\n### 3. **`src/auth/permissions.ts`**\nPermission and role management:\n- `Permission` (enum)\n- `RolePermissions` (ReadonlyMap)\n- `hasPermission(role: UserRole, permission: Permission): boolean`\n- `requirePermission(role: UserRole, permission: Permission): void`\n- `isAdmin(role: UserRole): boolean`\n\n### 4. **`src/api/middleware/auth-middleware.ts`**\nAuthentication middleware functions:\n- `authenticateRequest()` - middleware to require valid JWT\n- `requireRole(...roles: UserRole[])` - middleware to enforce role requirements\n- `optionalAuth()` - middleware for optional authentication\n- `rateLimitAuth(maxAttempts = 5, windowMs = 900000)` - rate limiting for auth endpoints\n\n### 5. **`src/api/controllers/auth-controller.ts`**\nMain authentication controller:\n- `AuthController` (class with methods: `login`, `signup`, `logout`, `refreshToken`, `forgotPassword`, `resetPassword`)\n\n### 6. **`src/api/routes/auth-routes.ts`**\nRoute registration function:\n- `registerAuthRoutes(router: Router): void`\n\n### 7. **`src/utils/hash.ts`**\nPassword hashing utilities:\n- `generateSalt(): string`\n- `hashPassword(password: string): Promise<string>`\n- `comparePassword(password: string, storedHash: string): Promise<boolean>`\n\n### 8. **`src/utils/validators.ts`**\nInput validation functions:\n- `validateEmail(email: string): ValidationResult`\n- `validatePassword(password: string): ValidationResult`\n- `validateUsername(username: string): ValidationResult`\n- `sanitizeInput(input: string): string`\n\n### 9. **`src/types/index.ts`**\nAuthentication-related type definitions (interfaces):\n- `AuthTokens` (interface)\n- `LoginCredentials` (interface)\n- `SignupData` (interface)\n\n---\n\n**Summary**: You have **8 files** with executable authentication functions and **1 file** with type definitions, totaling **27 exported functions/classes/enums** related to authentication functionality.",
+  "num_turns": 12,
+  "model_usage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 123,
+      "outputTokens": 96,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.000603,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    },
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 192,
+      "outputTokens": 1733,
+      "cacheReadInputTokens": 88272,
+      "cacheCreationInputTokens": 11363,
+      "webSearchRequests": 0,
+      "costUSD": 0.09566385,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    }
+  }
+}

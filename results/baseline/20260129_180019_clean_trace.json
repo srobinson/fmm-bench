@@ -1,0 +1,151 @@
+{
+  "variant": "clean",
+  "task": "Find all files that export authentication-related functions. List each file path and the specific exports.",
+  "hint": false,
+  "duration_seconds": 36,
+  "tool_calls": [
+    {
+      "tool": "Grep",
+      "id": "toolu_01Sk1jsezRYNpMMJzmYakNve",
+      "input": {
+        "pattern": "(export.*auth|export.*login|export.*logout|export.*signin|export.*signout|export.*authenticate|export.*token|export.*session|export.*password|export.*credential)",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_019KurbGQP4CcVN3Ey6owq6i",
+      "input": {
+        "pattern": "(export\\s+\\{[^}]*auth[^}]*\\}|export\\s+\\{[^}]*login[^}]*\\}|export\\s+\\{[^}]*session[^}]*\\})",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_012MgkVTvETZD2ddkGKqRzZf",
+      "input": {
+        "file_path": "src/api/routes/auth-routes.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01Y9F4ccqg2t948XFPbwP2u2",
+      "input": {
+        "file_path": "src/api/controllers/auth-controller.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01V36BJH2fFbVPQYScgNdYSb",
+      "input": {
+        "file_path": "src/api/middleware/auth-middleware.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_014XrUXPqb2V5WHWaYvc7s6U",
+      "input": {
+        "file_path": "src/utils/validators.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01VzKJChZMHPFNg1ZXg2Agtp",
+      "input": {
+        "file_path": "src/utils/hash.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01WRkBRTnZciw9uD2fPLdMGe",
+      "input": {
+        "file_path": "src/auth/session.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01NUwc8NXzMiMHiAdAUepzKt",
+      "input": {
+        "file_path": "src/auth/jwt.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01AsM6AJj4XDB7FQFmARD4Sr",
+      "input": {
+        "file_path": "src/types/index.ts"
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_01KJB5xwZpmwy2QqgYJH3n5V",
+      "input": {
+        "pattern": "export.*permission",
+        "output_mode": "content",
+        "glob": "**/*.{ts,tsx,js,jsx}",
+        "-i": true
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01862MkhBJdaDGcLzpKBHD1a",
+      "input": {
+        "file_path": "src/auth/permissions.ts"
+      }
+    }
+  ],
+  "tool_calls_count": 12,
+  "files_read": [
+    "src/api/routes/auth-routes.ts",
+    "src/api/controllers/auth-controller.ts",
+    "src/api/middleware/auth-middleware.ts",
+    "src/utils/validators.ts",
+    "src/utils/hash.ts",
+    "src/auth/session.ts",
+    "src/auth/jwt.ts",
+    "src/types/index.ts",
+    "src/auth/permissions.ts"
+  ],
+  "total_lines_read": 18000,
+  "glob_patterns": [],
+  "grep_patterns": [
+    "(export.*auth|export.*login|export.*logout|export.*signin|export.*signout|export.*authenticate|export.*token|export.*session|export.*password|export.*credential)",
+    "(export\\s+\\{[^}]*auth[^}]*\\}|export\\s+\\{[^}]*login[^}]*\\}|export\\s+\\{[^}]*session[^}]*\\})",
+    "export.*permission"
+  ],
+  "discovered_fmm": false,
+  "intentionally_explored_fmm": false,
+  "fmm_in_tool_output": false,
+  "used_manifest": false,
+  "tokens_in": 89479,
+  "tokens_out": 1825,
+  "cost_usd": 0.099602,
+  "final_answer": "Perfect! Now I have a complete picture of all authentication-related exports. Let me compile this information in a clear, organized format:\n\n## Authentication-Related Files and Their Exports\n\nHere are all the files that export authentication-related functions, classes, and types:\n\n### 1. **`src/auth/jwt.ts`**\n   - `generateAccessToken(userId: string, email: string, role: UserRole): string`\n   - `generateRefreshToken(userId: string, email: string, role: UserRole): string`\n   - `verifyToken(token: string, isRefresh = false): JwtPayload | null`\n   - `decodeToken(token: string): JwtPayload | null`\n   - `createTokenPair(userId: string, email: string, role: UserRole): AuthTokens`\n\n### 2. **`src/auth/session.ts`**\n   - `SessionManager` (class) with methods:\n     - `create()` - Creates a new session\n     - `destroy()` - Destroys a session\n     - `refresh()` - Refreshes tokens\n     - `validate()` - Validates a session\n     - `listActive()` - Lists active sessions\n\n### 3. **`src/auth/permissions.ts`**\n   - `Permission` (enum) - Defines permission types\n   - `RolePermissions` (ReadonlyMap) - Maps roles to permissions\n   - `hasPermission(role: UserRole, permission: Permission): boolean`\n   - `requirePermission(role: UserRole, permission: Permission): void`\n   - `isAdmin(role: UserRole): boolean`\n\n### 4. **`src/api/middleware/auth-middleware.ts`**\n   - `authenticateRequest()` - Middleware to require authentication\n   - `requireRole(...roles: UserRole[])` - Middleware to require specific roles\n   - `optionalAuth()` - Middleware for optional authentication\n   - `rateLimitAuth(maxAttempts = 5, windowMs = 900000)` - Rate limiting middleware\n\n### 5. **`src/api/controllers/auth-controller.ts`**\n   - `AuthController` (class) with methods:\n     - `login()` - Handles user login\n     - `signup()` - Handles user registration\n     - `logout()` - Handles user logout\n     - `refreshToken()` - Refreshes authentication tokens\n     - `forgotPassword()` - Initiates password reset\n     - `resetPassword()` - Completes password reset\n\n### 6. **`src/api/routes/auth-routes.ts`**\n   - `registerAuthRoutes(router: Router): void` - Registers all auth routes\n\n### 7. **`src/utils/hash.ts`**\n   - `generateSalt(): string`\n   - `hashPassword(password: string): Promise<string>`\n   - `comparePassword(password: string, storedHash: string): Promise<boolean>`\n\n### 8. **`src/utils/validators.ts`**\n   - `validateEmail(email: string): ValidationResult`\n   - `validatePassword(password: string): ValidationResult`\n   - `validateUsername(username: string): ValidationResult`\n   - `sanitizeInput(input: string): string`\n\n### 9. **`src/types/index.ts`**\n   Type definitions:\n   - `UserRole` (enum)\n   - `User` (interface)\n   - `AuthTokens` (interface)\n   - `LoginCredentials` (interface)\n   - `SignupData` (interface)\n   - `JwtPayload` (interface)\n   - `ApiResponse<T>` (interface)\n   - `PaginatedResponse<T>` (interface)\n\nThese files form a complete authentication system with JWT token management, session handling, password hashing, validation, middleware, and role-based permissions.",
+  "num_turns": 13,
+  "model_usage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 123,
+      "outputTokens": 107,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.000658,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    },
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 26,
+      "outputTokens": 1825,
+      "cacheReadInputTokens": 89453,
+      "cacheCreationInputTokens": 11908,
+      "webSearchRequests": 0,
+      "costUSD": 0.0989439,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    }
+  }
+}

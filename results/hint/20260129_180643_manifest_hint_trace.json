@@ -1,0 +1,133 @@
+{
+  "variant": "manifest",
+  "task": "Find all files that export authentication-related functions. List each file path and the specific exports.",
+  "hint": true,
+  "duration_seconds": 40,
+  "tool_calls": [
+    {
+      "tool": "Grep",
+      "id": "toolu_01YTBfpvmnWwB1exYbTSoSt2",
+      "input": {
+        "pattern": "(export|exports).*auth",
+        "output_mode": "content",
+        "head_limit": 100,
+        "-i": true
+      }
+    },
+    {
+      "tool": "Grep",
+      "id": "toolu_01WRh8znMZEFyG58TZ7a5cLK",
+      "input": {
+        "pattern": "(export|exports).*(login|signin|signup|register|logout|token|session|credential)",
+        "output_mode": "content",
+        "head_limit": 100,
+        "-i": true
+      }
+    },
+    {
+      "tool": "Glob",
+      "id": "toolu_01JwPspwZbmpexmPoacuAqES",
+      "input": {
+        "pattern": "**/*auth*.{js,ts,jsx,tsx}"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01217exXjDFXB4ga8P8LDiRS",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/jwt.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01RejyWCigQCadv6U5FemtnD",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/session.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01A1wy8DycFoZWAW5bsCFoZ6",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/middleware/auth-middleware.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01TsYKtgPPpT5FATHe54a18N",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/routes/auth-routes.ts"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01P7kF4w5TWHu2pibsYLDuQE",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/controllers/auth-controller.ts"
+      }
+    },
+    {
+      "tool": "Glob",
+      "id": "toolu_01SZGjTzi3aznTL3BrtsVhsw",
+      "input": {
+        "pattern": "**/*{password,permission}*.{js,ts,jsx,tsx}"
+      }
+    },
+    {
+      "tool": "Read",
+      "id": "toolu_01XLLE6c9mDBy8BGg7d1JzU1",
+      "input": {
+        "file_path": "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/permissions.ts"
+      }
+    }
+  ],
+  "tool_calls_count": 10,
+  "files_read": [
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/jwt.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/session.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/middleware/auth-middleware.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/routes/auth-routes.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/api/controllers/auth-controller.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench-worktrees/nancy-ALP-319/repos/manifest/src/auth/permissions.ts"
+  ],
+  "total_lines_read": 12000,
+  "glob_patterns": [
+    "**/*auth*.{js,ts,jsx,tsx}",
+    "**/*{password,permission}*.{js,ts,jsx,tsx}"
+  ],
+  "grep_patterns": [
+    "(export|exports).*auth",
+    "(export|exports).*(login|signin|signup|register|logout|token|session|credential)"
+  ],
+  "discovered_fmm": false,
+  "intentionally_explored_fmm": false,
+  "fmm_in_tool_output": false,
+  "used_manifest": false,
+  "tokens_in": 72313,
+  "tokens_out": 1420,
+  "cost_usd": 0.09048,
+  "final_answer": "Based on my search, here are all files that export authentication-related functions:\n\n## **src/auth/jwt.ts:17-73**\n- `generateAccessToken(userId, email, role)` - Creates JWT access token\n- `generateRefreshToken(userId, email, role)` - Creates JWT refresh token\n- `verifyToken(token, isRefresh)` - Verifies and validates JWT token\n- `decodeToken(token)` - Decodes JWT without verification\n- `createTokenPair(userId, email, role)` - Creates both access and refresh tokens\n\n## **src/auth/session.ts:18**\n- `SessionManager` (class) - Manages user sessions with methods:\n  - `create()` - Create new session\n  - `destroy()` - Delete session\n  - `refresh()` - Refresh session tokens\n  - `validate()` - Validate session\n  - `listActive()` - List active sessions for user\n\n## **src/auth/permissions.ts:33-47**\n- `hasPermission(role, permission)` - Check if role has permission\n- `requirePermission(role, permission)` - Throw error if permission lacking\n- `isAdmin(role)` - Check if role is admin\n- `Permission` (enum) - Permission constants\n- `RolePermissions` (Map) - Role-to-permissions mapping\n\n## **src/api/middleware/auth-middleware.ts:29-94**\n- `authenticateRequest()` - Middleware to require authentication\n- `requireRole(...roles)` - Middleware to require specific roles\n- `optionalAuth()` - Middleware for optional authentication\n- `rateLimitAuth(maxAttempts, windowMs)` - Rate limiting middleware\n\n## **src/api/controllers/auth-controller.ts:15**\n- `AuthController` (class) - Handles auth operations with methods:\n  - `login()` - User login\n  - `signup()` - User registration\n  - `logout()` - User logout\n  - `refreshToken()` - Refresh authentication tokens\n  - `forgotPassword()` - Initiate password reset\n  - `resetPassword()` - Complete password reset\n\n## **src/api/routes/auth-routes.ts:10**\n- `registerAuthRoutes(router)` - Registers all auth endpoints",
+  "num_turns": 11,
+  "model_usage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 123,
+      "outputTokens": 94,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.000593,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    },
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 883,
+      "outputTokens": 1420,
+      "cacheReadInputTokens": 71430,
+      "cacheCreationInputTokens": 11869,
+      "webSearchRequests": 0,
+      "costUSD": 0.08988675,
+      "contextWindow": 200000,
+      "maxOutputTokens": 64000
+    }
+  }
+}
