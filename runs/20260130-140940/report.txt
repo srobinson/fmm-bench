@@ -1,0 +1,54 @@
+
+[1m============================================================[0m
+[1m       FMM QUICK VALIDATION — RESULTS[0m
+[1m============================================================[0m
+
+  Model:     sonnet
+  Run:       /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140940
+  Time:      2026-01-30 07:10:44 UTC
+
+  [1mMetric                            Clean        FMM          Delta[0m
+  ---------------------------- ---------- ---------- --------------
+  Tool calls (total)                   12         10           -17%
+    Read                                7          9           +29%
+    Grep                                0          0               
+    Glob                                5          1           -80%
+    Edit                                0          0               
+    Write                               0          0               
+    Bash                                0          0               
+  Files read (unique)                   7          9           +29%
+  Input tokens                        123        123            +0%
+  Output tokens                        66         49           -26%
+  Total tokens                        189        172            -9%
+  Cost (USD)                     0.000453   0.000368           -19%
+  Duration (ms)                     28074      32356           +15%
+  API turns                            13         11           -15%
+  Wall clock (s)                       30         34               
+
+  [1mFiles read — Clean:[0m
+    app.ts
+    auth.ts
+    authController.ts
+    jwt.ts
+    login.ts
+    session.ts
+    types.ts
+
+  [1mFiles read — FMM:[0m
+    auth.ts
+    auth.ts
+    authController.ts
+    index.json
+    jwt.ts
+    login.ts
+    session.ts
+    signup.ts
+    types.ts
+
+[1m============================================================[0m
+
+  [0;32m[1mSIGNAL: FMM helped.[0m
+  Tool calls: -17% | Tokens: -9% | Cost: -19%
+
+  [1;33mn=1 — run multiple times or with MODEL=opus for confidence.[0m
+

@@ -1,0 +1,54 @@
+
+[1m============================================================[0m
+[1m       FMM QUICK VALIDATION — RESULTS[0m
+[1m============================================================[0m
+
+  Model:     sonnet
+  Run:       /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432
+  Time:      2026-01-30 07:05:53 UTC
+
+  [1mMetric                            Clean        FMM          Delta[0m
+  ---------------------------- ---------- ---------- --------------
+  Tool calls (total)                   14         11           -21%
+    Read                                8          9           +12%
+    Grep                                0          0               
+    Glob                                6          2           -67%
+    Edit                                0          0               
+    Write                               0          0               
+    Bash                                0          0               
+  Files read (unique)                   8          9           +12%
+  Input tokens                        123        123            +0%
+  Output tokens                        65         89           +37%
+  Total tokens                        188        212           +13%
+  Cost (USD)                     0.000448 0.0005679999999999999           +27%
+  Duration (ms)                     43770      33432           -24%
+  API turns                            15         12           -20%
+  Wall clock (s)                       46         35               
+
+  [1mFiles read — Clean:[0m
+    app.ts
+    auth.ts
+    auth.ts
+    authController.ts
+    jwt.ts
+    login.ts
+    session.ts
+    types.ts
+
+  [1mFiles read — FMM:[0m
+    auth.ts
+    auth.ts
+    authController.ts
+    index.json
+    jwt.ts
+    login.ts
+    session.ts
+    signup.ts
+    types.ts
+
+[1m============================================================[0m
+
+  [1;33m[1mSIGNAL: FMM may have helped.[0m Fewer tool calls (-21%) but more tokens.
+
+  [1;33mn=1 — run multiple times or with MODEL=opus for confidence.[0m
+

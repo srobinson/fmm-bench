@@ -1,0 +1,33 @@
+{
+  "total_tool_calls": 14,
+  "tool_breakdown": {
+    "Glob": 6,
+    "Read": 8
+  },
+  "read_calls": 8,
+  "grep_calls": 0,
+  "glob_calls": 6,
+  "edit_calls": 0,
+  "write_calls": 0,
+  "bash_calls": 0,
+  "files_read": [
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/api/controllers/authController.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/api/models/session.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/api/routes/auth.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/auth/jwt.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/auth/login.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/auth/types.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/config/app.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140432/clean/src/middleware/auth.ts"
+  ],
+  "files_read_count": 8,
+  "input_tokens": 123,
+  "output_tokens": 65,
+  "cache_read_tokens": 0,
+  "cache_creation_tokens": 0,
+  "total_tokens": 188,
+  "cost_usd": 0.000448,
+  "duration_ms": 43770,
+  "num_turns": 15,
+  "is_error": false
+}

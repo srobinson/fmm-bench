@@ -1,0 +1,75 @@
+{
+  "experiment": "fmm-quick-validate",
+  "model": "sonnet",
+  "timestamp": "2026-01-30T07:11:31Z",
+  "clean": {
+    "total_tool_calls": 12,
+    "tool_breakdown": {
+      "Bash": 1,
+      "Glob": 3,
+      "Read": 7,
+      "Write": 1
+    },
+    "read_calls": 7,
+    "grep_calls": 0,
+    "glob_calls": 3,
+    "edit_calls": 0,
+    "write_calls": 1,
+    "bash_calls": 1,
+    "files_read": [
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/clean/src/api/controllers/authController.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/clean/src/api/models/session.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/clean/src/api/routes/auth.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/clean/src/auth/jwt.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/clean/src/auth/login.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/clean/src/auth/types.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/clean/src/config/app.ts"
+    ],
+    "files_read_count": 7,
+    "input_tokens": 672,
+    "output_tokens": 126,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0,
+    "total_tokens": 798,
+    "cost_usd": 0.001302,
+    "duration_ms": 56079,
+    "num_turns": 13,
+    "is_error": false,
+    "wall_seconds": 58
+  },
+  "fmm": {
+    "total_tool_calls": 10,
+    "tool_breakdown": {
+      "Glob": 1,
+      "Read": 9
+    },
+    "read_calls": 9,
+    "grep_calls": 0,
+    "glob_calls": 1,
+    "edit_calls": 0,
+    "write_calls": 0,
+    "bash_calls": 0,
+    "files_read": [
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/.fmm/index.json",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/api/controllers/authController.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/api/models/session.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/api/routes/auth.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/auth/jwt.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/auth/login.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/auth/signup.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/auth/types.ts",
+      "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-140953/fmm/src/middleware/auth.ts"
+    ],
+    "files_read_count": 9,
+    "input_tokens": 123,
+    "output_tokens": 54,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0,
+    "total_tokens": 177,
+    "cost_usd": 0.000393,
+    "duration_ms": 38281,
+    "num_turns": 11,
+    "is_error": false,
+    "wall_seconds": 40
+  }
+}
