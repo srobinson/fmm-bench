@@ -17,7 +17,7 @@ MAX_BUDGET="${MAX_BUDGET:-2.00}"
 
 TASK_PROMPT='Add refresh token support to the authentication system. Generate refresh tokens on login alongside access tokens. Store refresh tokens with expiry (7 days) in the user session. Add a /auth/refresh endpoint that issues new access tokens. Invalidate refresh token on logout.'
 
-FMM_PREAMBLE='Files in this codebase contain FMM headers — structured metadata blocks at the top of each file listing exports, imports, and dependencies. Read these headers first to understand file purpose before reading full content. A manifest is available at .fmm/index.json indexing all files.
+FMM_PREAMBLE='Files in this codebase contain FMM headers — structured metadata blocks at the top of each file listing exports, imports, and dependencies. Read these headers first to understand file purpose before reading full content. Use Grep to search FMM headers across files to find what you need.
 
 '
 

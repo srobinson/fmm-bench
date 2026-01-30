@@ -1,0 +1,8 @@
+============================================================
+  FMM ISSUE EXPERIMENT — RESULTS
+============================================================
+
+  Model:  sonnet
+  Task:   Implement DROP COLUMN IF EXISTS support for Kysely (GitHub issue #1623). The ALTER TABLE builder sho...
+  Repo:   kysely-clean
+

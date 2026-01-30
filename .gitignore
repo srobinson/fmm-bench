@@ -1,3 +1,11 @@
-runs/*-stream.jsonl
-runs/*-stderr.log
+# Large run artifacts
+runs/**/*-stream.jsonl
+runs/**/*-stderr.log
+runs/**/clean/
+runs/**/fmm/
+
+# Repo copies (large, reproducible)
+repos/
+
+# Nancy state
 .nancy/
