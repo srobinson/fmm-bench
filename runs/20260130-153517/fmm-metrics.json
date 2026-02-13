@@ -1,0 +1,35 @@
+{
+  "total_tool_calls": 46,
+  "tool_breakdown": {
+    "Bash": 1,
+    "Edit": 14,
+    "Glob": 1,
+    "Grep": 13,
+    "Read": 16,
+    "Write": 1
+  },
+  "files_read_count": 14,
+  "files_read": [
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/dialect/mssql/mssql-query-compiler.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/operation-node/alter-table-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/operation-node/drop-column-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/operation-node/drop-column-node.ts.fmm",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/operation-node/drop-constraint-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/operation-node/drop-table-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/operation-node/drop-table-node.ts.fmm",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/query-compiler/default-query-compiler.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/schema/alter-table-builder.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/schema/alter-table-builder.ts.fmm",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/schema/alter-table-drop-column-builder.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/src/schema/alter-table-drop-constraint-builder.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/test/node/src/schema.test.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/fmm/test/node/src/schema.test.ts.fmm"
+  ],
+  "input_tokens": 1824,
+  "output_tokens": 14,
+  "total_tokens": 1839,
+  "cost_usd": 0.9651866,
+  "duration_ms": 225915,
+  "num_turns": 41,
+  "wall_seconds": 228
+}

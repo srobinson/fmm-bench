@@ -1,0 +1,32 @@
+{
+  "total_tool_calls": 50,
+  "tool_breakdown": {
+    "Bash": 7,
+    "Edit": 13,
+    "Glob": 3,
+    "Grep": 8,
+    "Read": 17,
+    "Write": 2
+  },
+  "files_read_count": 11,
+  "files_read": [
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/index.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/operation-node/alter-table-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/operation-node/drop-column-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/operation-node/drop-constraint-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/operation-node/drop-table-node.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/operation-node/operation-node-transformer.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/query-compiler/default-query-compiler.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/schema/alter-table-builder.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/schema/alter-table-drop-constraint-builder.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/src/schema/drop-table-builder.ts",
+    "/Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-153517/clean/test/node/src/schema.test.ts"
+  ],
+  "input_tokens": 1470,
+  "output_tokens": 15,
+  "total_tokens": 1485,
+  "cost_usd": 0.867074,
+  "duration_ms": 446696,
+  "num_turns": 41,
+  "wall_seconds": 448
+}

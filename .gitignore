@@ -9,3 +9,5 @@ repos/
 
 # Nancy state
 .nancy/
+/target/
+Cargo.lock

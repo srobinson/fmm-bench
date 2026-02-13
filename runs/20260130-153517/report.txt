@@ -1,0 +1,50 @@
+============================================================
+  FMM SIDECAR EXPERIMENT (Exp17) — RESULTS
+============================================================
+
+  Model:  sonnet
+  Task:   Implement DROP COLUMN IF EXISTS support...
+  Repo:   Kysely (279 src files, 471 sidecars)
+
+  Metric                       Clean       FMM         Delta
+  -------------------------  ---------  ---------  ---------
+  Tool calls                 50         46          -8%
+    Read                     17         16          -6%
+    Glob                     3          1           -67%
+    Grep                     8          13         +63%
+    Edit                     13         14         +8%
+    Bash                     7          1           -86%
+  Files read (unique)        11         14         +27%
+  Tokens (k)                 1485       1839       +24%
+  Cost ($)                   0.867074   0.9651866  +11%
+  API turns                  41         41         +0%
+  Wall time (s)              448        228         -49%
+
+  FMM files read:
+    mssql-query-compiler.ts
+    alter-table-node.ts
+    drop-column-node.ts
+    drop-column-node.ts.fmm
+    drop-constraint-node.ts
+    drop-table-node.ts
+    drop-table-node.ts.fmm
+    default-query-compiler.ts
+    alter-table-builder.ts
+    alter-table-builder.ts.fmm
+    alter-table-drop-column-builder.ts
+    alter-table-drop-constraint-builder.ts
+    schema.test.ts
+    schema.test.ts.fmm
+
+  Clean files read:
+    index.ts
+    alter-table-node.ts
+    drop-column-node.ts
+    drop-constraint-node.ts
+    drop-table-node.ts
+    operation-node-transformer.ts
+    default-query-compiler.ts
+    alter-table-builder.ts
+    alter-table-drop-constraint-builder.ts
+    drop-table-builder.ts
+    schema.test.ts

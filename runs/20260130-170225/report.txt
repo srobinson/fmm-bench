@@ -1,0 +1,27 @@
+============================================================
+  FMM ISSUE EXPERIMENT — RESULTS
+============================================================
+
+  Model:  sonnet
+  Task:   Implement DROP COLUMN IF EXISTS support for the ALTER TABLE builder. Currently Kysely supports ALTER...
+  Repo:   kysely-clean
+  FMM:    sidecars + preamble (same tools, prompt differs)
+  Clean:  no sidecars, no preamble
+
+  Metric                       Clean       FMM         Delta
+  -------------------------  ---------  ---------  ---------
+  Tool calls                 45         47         +4%
+    Read                     11         11         +0%
+    Glob                     5          0           -100%
+    Grep                     8          12         +50%
+    Edit                     11         12         +9%
+    Bash                     3          3          +0%
+    MCP                      0          0            0%
+  Files read                 9          9          +0%
+  Tokens (k)                 1724       1955       +13%
+  Cost ($)                   0.8702407  0.9248137  +6%
+  API turns                  41         41         +0%
+
+  Files read (FMM):  /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/operation-node/drop-column-node.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/operation-node/drop-column-node.ts.fmm, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/operation-node/drop-table-node.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/operation-node/operation-node-transformer.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/query-compiler/default-query-compiler.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/query-compiler/default-query-compiler.ts.fmm, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/schema/alter-table-builder.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/src/schema/alter-table-builder.ts.fmm, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/fmm/test/node/src/schema.test.ts
+
+  Files read (Clean): /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/dialect/mssql/mssql-query-compiler.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/operation-node/drop-column-node.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/operation-node/drop-constraint-node.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/operation-node/drop-table-node.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/operation-node/operation-node-transformer.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/query-compiler/default-query-compiler.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/schema/alter-table-builder.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/src/schema/alter-table-drop-constraint-builder.ts, /Users/alphab/Dev/LLM/DEV/fmm-bench/runs/20260130-170225/clean/test/node/src/schema.test.ts
