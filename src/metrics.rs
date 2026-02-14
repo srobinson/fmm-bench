@@ -1,11 +1,46 @@
 //! Shared metrics types and stream-json parser for Claude CLI output.
 //!
-//! Used by both `gh::runner` (issue fixing) and `compare::runner` (benchmarking).
+//! Extracts rich per-tool breakdowns, navigation efficiency, fmm usage
+//! tracking, and outcome metrics from Claude's stream-json JSONL output.
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
+
+/// Per-tool detail: count + associated args (files, patterns, commands).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ToolDetail {
+    pub count: u32,
+    /// File paths for Read/Edit/Write, patterns for Glob/Grep, commands for Bash.
+    pub args: Vec<String>,
+}
+
+/// Navigation efficiency metrics.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct NavigationMetrics {
+    /// Unique files read during the run.
+    pub unique_files_read: u32,
+    /// Unique files edited during the run.
+    pub unique_files_edited: u32,
+    /// Turn number of the first edit/write (0 if none).
+    pub first_edit_turn: u32,
+    /// Turns spent exploring (before first edit).
+    pub exploration_turns: u32,
+    /// Turns spent implementing (from first edit onward).
+    pub implementation_turns: u32,
+}
+
+/// FMM-specific usage tracking.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct FmmUsage {
+    /// Number of .fmm sidecar files read.
+    pub sidecars_read: u32,
+    /// Number of fmm MCP tool calls.
+    pub mcp_tool_calls: u32,
+    /// Names of fmm-specific tools called.
+    pub fmm_tool_names: Vec<String>,
+}
 
 /// Accumulated metrics from a Claude CLI run.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -23,6 +58,13 @@ pub struct RunMetrics {
     pub read_calls: u32,
     pub success: bool,
     pub error: Option<String>,
+
+    /// Per-tool detail with args.
+    pub tool_details: HashMap<String, ToolDetail>,
+    /// Navigation efficiency.
+    pub navigation: NavigationMetrics,
+    /// FMM-specific usage tracking.
+    pub fmm_usage: FmmUsage,
 }
 
 /// Parsed output from a Claude CLI stream-json invocation.
@@ -40,6 +82,12 @@ pub fn parse_stream_json(output: &str, fallback_duration: Duration) -> Result<Pa
     let mut response_text = String::new();
     let mut final_result: Option<serde_json::Value> = None;
 
+    // Track per-turn state for navigation efficiency
+    let mut current_turn: u32 = 0;
+    let mut first_edit_turn: u32 = 0;
+    let mut files_read_set: HashSet<String> = HashSet::new();
+    let mut files_edited_set: HashSet<String> = HashSet::new();
+
     for line in output.lines() {
         if line.trim().is_empty() {
             continue;
@@ -52,32 +100,21 @@ pub fn parse_stream_json(output: &str, fallback_duration: Duration) -> Result<Pa
 
         match data.get("type").and_then(|v| v.as_str()) {
             Some("assistant") => {
+                current_turn += 1;
+
                 if let Some(message) = data.get("message") {
                     if let Some(content) = message.get("content").and_then(|c| c.as_array()) {
                         for item in content {
                             match item.get("type").and_then(|t| t.as_str()) {
                                 Some("tool_use") => {
-                                    metrics.tool_calls += 1;
-
-                                    if let Some(name) = item.get("name").and_then(|n| n.as_str()) {
-                                        *metrics
-                                            .tools_by_name
-                                            .entry(name.to_string())
-                                            .or_insert(0) += 1;
-
-                                        if name == "Read" || name == "View" {
-                                            metrics.read_calls += 1;
-                                            if let Some(input) = item.get("input") {
-                                                if let Some(path) = input
-                                                    .get("file_path")
-                                                    .or(input.get("path"))
-                                                    .and_then(|p| p.as_str())
-                                                {
-                                                    metrics.files_accessed.push(path.to_string());
-                                                }
-                                            }
-                                        }
-                                    }
+                                    process_tool_use(
+                                        item,
+                                        &mut metrics,
+                                        current_turn,
+                                        &mut first_edit_turn,
+                                        &mut files_read_set,
+                                        &mut files_edited_set,
+                                    );
                                 }
                                 Some("text") => {
                                     if let Some(text) = item.get("text").and_then(|t| t.as_str()) {
@@ -132,6 +169,7 @@ pub fn parse_stream_json(output: &str, fallback_duration: Duration) -> Result<Pa
         }
     }
 
+    // Finalize success/error
     metrics.success = final_result
         .as_ref()
         .and_then(|r| r.get("is_error"))
@@ -149,10 +187,122 @@ pub fn parse_stream_json(output: &str, fallback_duration: Duration) -> Result<Pa
         None
     };
 
+    // Compute navigation efficiency
+    metrics.navigation.unique_files_read = files_read_set.len() as u32;
+    metrics.navigation.unique_files_edited = files_edited_set.len() as u32;
+    metrics.navigation.first_edit_turn = first_edit_turn;
+    if first_edit_turn > 0 {
+        metrics.navigation.exploration_turns = first_edit_turn - 1;
+        metrics.navigation.implementation_turns = current_turn.saturating_sub(first_edit_turn - 1);
+    } else {
+        metrics.navigation.exploration_turns = current_turn;
+        metrics.navigation.implementation_turns = 0;
+    }
+
     Ok(ParsedOutput {
         metrics,
         response_text,
     })
+}
+
+/// Process a single tool_use item from stream-json content.
+fn process_tool_use(
+    item: &serde_json::Value,
+    metrics: &mut RunMetrics,
+    current_turn: u32,
+    first_edit_turn: &mut u32,
+    files_read_set: &mut HashSet<String>,
+    files_edited_set: &mut HashSet<String>,
+) {
+    metrics.tool_calls += 1;
+
+    let Some(name) = item.get("name").and_then(|n| n.as_str()) else {
+        return;
+    };
+
+    *metrics.tools_by_name.entry(name.to_string()).or_insert(0) += 1;
+
+    let input = item.get("input");
+    let detail = metrics.tool_details.entry(name.to_string()).or_default();
+    detail.count += 1;
+
+    match name {
+        "Read" | "View" => {
+            metrics.read_calls += 1;
+            if let Some(input) = input {
+                if let Some(path) = input
+                    .get("file_path")
+                    .or(input.get("path"))
+                    .and_then(|p| p.as_str())
+                {
+                    metrics.files_accessed.push(path.to_string());
+                    detail.args.push(path.to_string());
+                    files_read_set.insert(path.to_string());
+
+                    // Track fmm sidecar reads
+                    if path.ends_with(".fmm") {
+                        metrics.fmm_usage.sidecars_read += 1;
+                    }
+                }
+            }
+        }
+        "Edit" => {
+            if let Some(input) = input {
+                if let Some(path) = input.get("file_path").and_then(|p| p.as_str()) {
+                    detail.args.push(path.to_string());
+                    files_edited_set.insert(path.to_string());
+                }
+            }
+            if *first_edit_turn == 0 {
+                *first_edit_turn = current_turn;
+            }
+        }
+        "Write" => {
+            if let Some(input) = input {
+                if let Some(path) = input.get("file_path").and_then(|p| p.as_str()) {
+                    detail.args.push(path.to_string());
+                    files_edited_set.insert(path.to_string());
+                }
+            }
+            if *first_edit_turn == 0 {
+                *first_edit_turn = current_turn;
+            }
+        }
+        "Glob" => {
+            if let Some(input) = input {
+                if let Some(pattern) = input.get("pattern").and_then(|p| p.as_str()) {
+                    detail.args.push(pattern.to_string());
+                }
+            }
+        }
+        "Grep" => {
+            if let Some(input) = input {
+                if let Some(pattern) = input.get("pattern").and_then(|p| p.as_str()) {
+                    detail.args.push(pattern.to_string());
+                }
+            }
+        }
+        "Bash" => {
+            if let Some(input) = input {
+                if let Some(command) = input.get("command").and_then(|c| c.as_str()) {
+                    // Truncate long commands
+                    let truncated = if command.len() > 200 {
+                        format!("{}...", &command[..197])
+                    } else {
+                        command.to_string()
+                    };
+                    detail.args.push(truncated);
+                }
+            }
+        }
+        _ => {
+            // Track fmm MCP tool calls (tools starting with fmm_ or mcp__fmm)
+            if name.starts_with("fmm_") || name.starts_with("mcp__fmm") {
+                metrics.fmm_usage.mcp_tool_calls += 1;
+                metrics.fmm_usage.fmm_tool_names.push(name.to_string());
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -216,6 +366,14 @@ mod tests {
         assert_eq!(parsed.metrics.tools_by_name["Glob"], 1);
         assert_eq!(parsed.metrics.read_calls, 1);
         assert_eq!(parsed.metrics.files_accessed, vec!["src/main.rs"]);
+
+        // New: tool details
+        assert_eq!(parsed.metrics.tool_details["Read"].count, 1);
+        assert_eq!(
+            parsed.metrics.tool_details["Read"].args,
+            vec!["src/main.rs"]
+        );
+        assert_eq!(parsed.metrics.tool_details["Glob"].args, vec!["**/*.ts"]);
     }
 
     #[test]
@@ -233,5 +391,104 @@ mod tests {
         let output = r#"{"type":"result","is_error":false,"total_cost_usd":0.01,"num_turns":1,"usage":{"input_tokens":10,"output_tokens":5}}"#;
         let parsed = parse_stream_json(output, dur(9999)).unwrap();
         assert_eq!(parsed.metrics.duration_ms, 9999);
+    }
+
+    #[test]
+    fn navigation_efficiency_exploration_then_edit() {
+        // Turn 1: Read (exploration), Turn 2: Edit (implementation)
+        let output = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"src/a.rs"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"src/b.rs"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"src/a.rs","old_string":"x","new_string":"y"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"src/b.rs","old_string":"x","new_string":"y"}}]}}
+{"type":"result","is_error":false,"usage":{"input_tokens":100,"output_tokens":50},"total_cost_usd":0.01,"num_turns":4,"duration_ms":1000}"#;
+
+        let parsed = parse_stream_json(output, dur(1000)).unwrap();
+        let nav = &parsed.metrics.navigation;
+        assert_eq!(nav.unique_files_read, 2);
+        assert_eq!(nav.unique_files_edited, 2);
+        assert_eq!(nav.first_edit_turn, 3);
+        assert_eq!(nav.exploration_turns, 2);
+        assert_eq!(nav.implementation_turns, 2);
+    }
+
+    #[test]
+    fn navigation_no_edits() {
+        let output = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"src/a.rs"}}]}}
+{"type":"result","is_error":false,"usage":{"input_tokens":10,"output_tokens":5},"total_cost_usd":0.001,"num_turns":1,"duration_ms":100}"#;
+
+        let parsed = parse_stream_json(output, dur(100)).unwrap();
+        let nav = &parsed.metrics.navigation;
+        assert_eq!(nav.first_edit_turn, 0);
+        assert_eq!(nav.exploration_turns, 1);
+        assert_eq!(nav.implementation_turns, 0);
+    }
+
+    #[test]
+    fn fmm_sidecar_reads_tracked() {
+        let output = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"src/main.rs.fmm"}},{"type":"tool_use","name":"Read","input":{"file_path":"src/lib.rs.fmm"}}]}}
+{"type":"result","is_error":false,"usage":{"input_tokens":10,"output_tokens":5},"total_cost_usd":0.001,"num_turns":1,"duration_ms":100}"#;
+
+        let parsed = parse_stream_json(output, dur(100)).unwrap();
+        assert_eq!(parsed.metrics.fmm_usage.sidecars_read, 2);
+    }
+
+    #[test]
+    fn fmm_mcp_tools_tracked() {
+        let output = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"fmm_lookup_export","input":{"name":"createStore"}},{"type":"tool_use","name":"mcp__fmm__search","input":{}}]}}
+{"type":"result","is_error":false,"usage":{"input_tokens":10,"output_tokens":5},"total_cost_usd":0.001,"num_turns":1,"duration_ms":100}"#;
+
+        let parsed = parse_stream_json(output, dur(100)).unwrap();
+        assert_eq!(parsed.metrics.fmm_usage.mcp_tool_calls, 2);
+        assert!(parsed
+            .metrics
+            .fmm_usage
+            .fmm_tool_names
+            .contains(&"fmm_lookup_export".to_string()));
+        assert!(parsed
+            .metrics
+            .fmm_usage
+            .fmm_tool_names
+            .contains(&"mcp__fmm__search".to_string()));
+    }
+
+    #[test]
+    fn edit_and_write_tracked_in_details() {
+        let output = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"src/main.rs","old_string":"a","new_string":"b"}},{"type":"tool_use","name":"Write","input":{"file_path":"src/new.rs","content":"fn main() {}"}}]}}
+{"type":"result","is_error":false,"usage":{"input_tokens":10,"output_tokens":5},"total_cost_usd":0.001,"num_turns":1,"duration_ms":100}"#;
+
+        let parsed = parse_stream_json(output, dur(100)).unwrap();
+        assert_eq!(parsed.metrics.tool_details["Edit"].count, 1);
+        assert_eq!(
+            parsed.metrics.tool_details["Edit"].args,
+            vec!["src/main.rs"]
+        );
+        assert_eq!(parsed.metrics.tool_details["Write"].count, 1);
+        assert_eq!(
+            parsed.metrics.tool_details["Write"].args,
+            vec!["src/new.rs"]
+        );
+        assert_eq!(parsed.metrics.navigation.unique_files_edited, 2);
+    }
+
+    #[test]
+    fn bash_commands_tracked() {
+        let output = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"npm test"}}]}}
+{"type":"result","is_error":false,"usage":{"input_tokens":10,"output_tokens":5},"total_cost_usd":0.001,"num_turns":1,"duration_ms":100}"#;
+
+        let parsed = parse_stream_json(output, dur(100)).unwrap();
+        assert_eq!(parsed.metrics.tool_details["Bash"].count, 1);
+        assert_eq!(parsed.metrics.tool_details["Bash"].args, vec!["npm test"]);
+    }
+
+    #[test]
+    fn grep_patterns_tracked() {
+        let output = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Grep","input":{"pattern":"createStore"}}]}}
+{"type":"result","is_error":false,"usage":{"input_tokens":10,"output_tokens":5},"total_cost_usd":0.001,"num_turns":1,"duration_ms":100}"#;
+
+        let parsed = parse_stream_json(output, dur(100)).unwrap();
+        assert_eq!(
+            parsed.metrics.tool_details["Grep"].args,
+            vec!["createStore"]
+        );
     }
 }

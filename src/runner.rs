@@ -28,6 +28,16 @@ pub struct RunResult {
     pub response: String,
     pub success: bool,
     pub error: Option<String>,
+
+    /// Per-tool detail with args (files, patterns, commands).
+    #[serde(default)]
+    pub tool_details: HashMap<String, metrics::ToolDetail>,
+    /// Navigation efficiency metrics.
+    #[serde(default)]
+    pub navigation: metrics::NavigationMetrics,
+    /// FMM-specific usage tracking.
+    #[serde(default)]
+    pub fmm_usage: metrics::FmmUsage,
 }
 
 impl RunResult {
@@ -54,6 +64,9 @@ impl RunResult {
             response,
             success: m.success,
             error: m.error,
+            tool_details: m.tool_details,
+            navigation: m.navigation,
+            fmm_usage: m.fmm_usage,
         }
     }
 }

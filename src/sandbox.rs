@@ -373,19 +373,18 @@ mod tests {
     }
 
     #[test]
-    fn test_find_fmm_binary() {
-        // Should find fmm since it's installed (we checked earlier)
+    fn test_find_fmm_binary_and_env_override() {
+        // First: ensure fmm is findable with clean env
+        // (remove FMM_BIN in case another test leaked it)
+        std::env::remove_var("FMM_BIN");
         let result = find_fmm_binary();
         assert!(
             result.is_ok(),
             "fmm binary should be findable: {:?}",
             result.err()
         );
-    }
 
-    #[test]
-    fn test_find_fmm_binary_respects_env_var() {
-        // Set FMM_BIN to a nonexistent path — should error
+        // Second: FMM_BIN pointing to nonexistent path should error
         std::env::set_var("FMM_BIN", "/nonexistent/fmm");
         let result = find_fmm_binary();
         assert!(result.is_err());

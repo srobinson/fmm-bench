@@ -400,13 +400,59 @@ impl ComparisonReport {
                 task.control.total_cost_usd, task.fmm.total_cost_usd
             ));
             md.push_str(&format!(
-                "| Duration | {}ms | {}ms |\n\n",
+                "| Duration | {}ms | {}ms |\n",
                 task.control.duration_ms, task.fmm.duration_ms
             ));
 
+            // Navigation efficiency
+            let cn = &task.control.navigation;
+            let fn_ = &task.fmm.navigation;
+            md.push_str(&format!(
+                "| Files Read | {} | {} |\n",
+                cn.unique_files_read, fn_.unique_files_read
+            ));
+            md.push_str(&format!(
+                "| Files Edited | {} | {} |\n",
+                cn.unique_files_edited, fn_.unique_files_edited
+            ));
+            md.push_str(&format!(
+                "| First Edit Turn | {} | {} |\n",
+                if cn.first_edit_turn > 0 {
+                    cn.first_edit_turn.to_string()
+                } else {
+                    "-".to_string()
+                },
+                if fn_.first_edit_turn > 0 {
+                    fn_.first_edit_turn.to_string()
+                } else {
+                    "-".to_string()
+                },
+            ));
+            md.push_str(&format!(
+                "| Exploration Turns | {} | {} |\n",
+                cn.exploration_turns, fn_.exploration_turns
+            ));
+            md.push_str(&format!(
+                "| Implementation Turns | {} | {} |\n",
+                cn.implementation_turns, fn_.implementation_turns
+            ));
+
+            // FMM usage (only if non-zero)
+            let fu = &task.fmm.fmm_usage;
+            if fu.sidecars_read > 0 || fu.mcp_tool_calls > 0 {
+                md.push_str(&format!(
+                    "| FMM Sidecars Read | - | {} |\n",
+                    fu.sidecars_read
+                ));
+                md.push_str(&format!("| FMM MCP Calls | - | {} |\n", fu.mcp_tool_calls));
+            }
+            md.push('\n');
+
             if !task.control.tools_by_name.is_empty() {
                 md.push_str("**Control Tools Used:**\n");
-                for (tool, count) in &task.control.tools_by_name {
+                let mut tools: Vec<_> = task.control.tools_by_name.iter().collect();
+                tools.sort_by(|a, b| b.1.cmp(a.1));
+                for (tool, count) in tools {
                     md.push_str(&format!("- {}: {}\n", tool, count));
                 }
                 md.push('\n');
@@ -414,7 +460,9 @@ impl ComparisonReport {
 
             if !task.fmm.tools_by_name.is_empty() {
                 md.push_str("**FMM Tools Used:**\n");
-                for (tool, count) in &task.fmm.tools_by_name {
+                let mut tools: Vec<_> = task.fmm.tools_by_name.iter().collect();
+                tools.sort_by(|a, b| b.1.cmp(a.1));
+                for (tool, count) in tools {
                     md.push_str(&format!("- {}: {}\n", tool, count));
                 }
                 md.push('\n');
@@ -511,6 +559,9 @@ mod tests {
             response: "test".to_string(),
             success: true,
             error: None,
+            tool_details: HashMap::new(),
+            navigation: Default::default(),
+            fmm_usage: Default::default(),
         }
     }
 

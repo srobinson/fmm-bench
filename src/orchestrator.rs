@@ -637,6 +637,9 @@ mod tests {
             response: "The main entry point is src/main.rs".to_string(),
             success: true,
             error: None,
+            tool_details: HashMap::new(),
+            navigation: Default::default(),
+            fmm_usage: Default::default(),
         };
 
         let fmm = RunResult {
@@ -655,6 +658,9 @@ mod tests {
             response: "The main entry point is src/main.rs".to_string(),
             success: true,
             error: None,
+            tool_details: HashMap::new(),
+            navigation: Default::default(),
+            fmm_usage: Default::default(),
         };
 
         let report = ComparisonReport::new(
