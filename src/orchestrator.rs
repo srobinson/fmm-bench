@@ -109,7 +109,7 @@ impl Orchestrator {
 
         // Step 2: Generate FMM sidecars + install skill + MCP for FMM variant
         println!("{} Setting up FMM variant...", "🔧".yellow());
-        sandbox.generate_fmm_manifest()?;
+        sandbox.generate_fmm_sidecars()?;
 
         let sidecar_count = walkdir::WalkDir::new(&sandbox.fmm_dir)
             .into_iter()
@@ -269,7 +269,7 @@ impl Orchestrator {
 
         // Step 2: Generate FMM sidecars + init for FMM variant
         println!("{} Setting up FMM variant...", ">>".yellow());
-        sandbox.generate_fmm_manifest()?;
+        sandbox.generate_fmm_sidecars()?;
 
         let sidecar_count = walkdir::WalkDir::new(&sandbox.fmm_dir)
             .into_iter()
