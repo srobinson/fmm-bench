@@ -6,8 +6,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::cache::{CacheKey, CacheManager};
+use crate::evaluator;
 use crate::issue::GitHubIssue;
-use crate::report::{ComparisonReport, ReportFormat};
+use crate::report::{ComparisonReport, ReportFormat, TaskResultRow};
 use crate::runner::{ClaudeRunner, RunResult};
 use crate::sandbox::Sandbox;
 use crate::tasks::{Task, TaskCategory, TaskSet};
@@ -154,7 +155,7 @@ impl Orchestrator {
         );
 
         // Step 4: Run tasks
-        let mut results: Vec<(Task, RunResult, RunResult)> = vec![];
+        let mut results: Vec<TaskResultRow> = vec![];
 
         for (i, task) in task_set.tasks.iter().enumerate() {
             println!(
@@ -208,7 +209,7 @@ impl Orchestrator {
                 control_result.tool_calls, fmm_result.tool_calls, reduction
             );
 
-            results.push((task.clone(), control_result, fmm_result));
+            results.push((task.clone(), control_result, fmm_result, None, None));
         }
 
         // Step 5: Generate report
@@ -304,7 +305,7 @@ impl Orchestrator {
         };
 
         // Step 4: Run N times
-        let mut all_results: Vec<(Task, RunResult, RunResult)> = vec![];
+        let mut all_results: Vec<TaskResultRow> = vec![];
 
         for run_idx in 0..self.options.runs {
             if self.options.runs > 1 {
@@ -360,7 +361,30 @@ impl Orchestrator {
                 reduction
             );
 
-            all_results.push((task.clone(), control_result, fmm_result));
+            // Post-run evaluation
+            println!("  {} Evaluating...", ">>".yellow());
+            let control_eval = evaluator::evaluate(&sandbox.control_dir).ok();
+            let fmm_eval = evaluator::evaluate(&sandbox.fmm_dir).ok();
+
+            if let (Some(ce), Some(fe)) = (&control_eval, &fmm_eval) {
+                println!(
+                    "  Control: grade {} (+{}/-{}) | FMM: grade {} (+{}/-{})",
+                    ce.grade,
+                    ce.diff_lines_added,
+                    ce.diff_lines_removed,
+                    fe.grade,
+                    fe.diff_lines_added,
+                    fe.diff_lines_removed
+                );
+            }
+
+            all_results.push((
+                task.clone(),
+                control_result,
+                fmm_result,
+                control_eval,
+                fmm_eval,
+            ));
 
             // Reset sandbox git state between runs so each starts fresh
             if run_idx + 1 < self.options.runs {
@@ -668,7 +692,7 @@ mod tests {
             "https://github.com/test/repo".to_string(),
             "abc123def456".to_string(),
             "main".to_string(),
-            vec![(task, control, fmm)],
+            vec![(task, control, fmm, None, None)],
         );
 
         assert_eq!(report.summary.tasks_run, 1);

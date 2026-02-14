@@ -1,4 +1,5 @@
 mod cache;
+pub mod evaluator;
 pub mod issue;
 pub mod metrics;
 pub mod orchestrator;

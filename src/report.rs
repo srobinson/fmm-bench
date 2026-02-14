@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+use crate::evaluator::EvalScores;
 use crate::runner::RunResult;
 use crate::tasks::Task;
 
@@ -49,6 +50,12 @@ pub struct TaskComparison {
     pub fmm: RunResult,
     /// Calculated savings
     pub savings: TaskSavings,
+    /// Post-run evaluation of control variant
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub control_eval: Option<EvalScores>,
+    /// Post-run evaluation of FMM variant
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fmm_eval: Option<EvalScores>,
 }
 
 /// Savings metrics for a task
@@ -108,20 +115,29 @@ pub struct OverallSavings {
     pub duration_reduction_pct: f64,
 }
 
+/// A single task result with optional evaluations.
+pub type TaskResultRow = (
+    Task,
+    RunResult,
+    RunResult,
+    Option<EvalScores>,
+    Option<EvalScores>,
+);
+
 impl ComparisonReport {
-    /// Create a new report from task results
+    /// Create a new report from task results with optional evaluations.
     pub fn new(
         job_id: String,
         repo_url: String,
         commit_sha: String,
         branch: String,
-        results: Vec<(Task, RunResult, RunResult)>,
+        results: Vec<TaskResultRow>,
     ) -> Self {
         let timestamp = chrono::Utc::now().to_rfc3339();
 
         let task_results: Vec<TaskComparison> = results
             .into_iter()
-            .map(|(task, control, fmm)| {
+            .map(|(task, control, fmm, control_eval, fmm_eval)| {
                 let savings = calculate_savings(&control, &fmm);
                 TaskComparison {
                     task_id: task.id,
@@ -129,6 +145,8 @@ impl ComparisonReport {
                     control,
                     fmm,
                     savings,
+                    control_eval,
+                    fmm_eval,
                 }
             })
             .collect();
@@ -467,9 +485,66 @@ impl ComparisonReport {
                 }
                 md.push('\n');
             }
+
+            // Evaluation scores
+            if task.control_eval.is_some() || task.fmm_eval.is_some() {
+                md.push_str("**Evaluation:**\n\n");
+                md.push_str("| Check | Control | FMM |\n");
+                md.push_str("|-------|---------|-----|\n");
+
+                let ce = task.control_eval.as_ref();
+                let fe = task.fmm_eval.as_ref();
+
+                md.push_str(&format!(
+                    "| Has Commit | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.has_commit)),
+                    eval_bool(fe.map(|e| e.has_commit)),
+                ));
+                md.push_str(&format!(
+                    "| Tests Exist | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.tests_existed)),
+                    eval_bool(fe.map(|e| e.tests_existed)),
+                ));
+                md.push_str(&format!(
+                    "| Tests Pass | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.tests_pass)),
+                    eval_bool(fe.map(|e| e.tests_pass)),
+                ));
+                md.push_str(&format!(
+                    "| Build Passes | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.build_passes)),
+                    eval_bool(fe.map(|e| e.build_passes)),
+                ));
+                md.push_str(&format!(
+                    "| Diff | {} | {} |\n",
+                    eval_diff(ce),
+                    eval_diff(fe),
+                ));
+                md.push_str(&format!(
+                    "| Grade | {} | {} |\n\n",
+                    ce.map_or("-", |e| &e.grade),
+                    fe.map_or("-", |e| &e.grade),
+                ));
+            }
         }
 
         md
+    }
+}
+
+fn eval_bool(val: Option<bool>) -> &'static str {
+    match val {
+        Some(true) => "Yes",
+        Some(false) => "No",
+        None => "-",
+    }
+}
+
+fn eval_diff(eval: Option<&EvalScores>) -> String {
+    match eval {
+        Some(e) if e.has_commit => format!("+{}/-{}", e.diff_lines_added, e.diff_lines_removed),
+        Some(_) => "none".to_string(),
+        None => "-".to_string(),
     }
 }
 
@@ -587,7 +662,7 @@ mod tests {
             "https://github.com/test/repo".to_string(),
             "abc123".to_string(),
             "main".to_string(),
-            vec![(task, control, fmm)],
+            vec![(task, control, fmm, None, None)],
         );
 
         assert_eq!(report.summary.tasks_run, 1);
