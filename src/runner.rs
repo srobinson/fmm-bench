@@ -7,8 +7,8 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Instant;
 
-use crate::tasks::Task;
 use crate::metrics;
+use crate::tasks::Task;
 
 /// Result of a single benchmark run
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +28,16 @@ pub struct RunResult {
     pub response: String,
     pub success: bool,
     pub error: Option<String>,
+
+    /// Per-tool detail with args (files, patterns, commands).
+    #[serde(default)]
+    pub tool_details: HashMap<String, metrics::ToolDetail>,
+    /// Navigation efficiency metrics.
+    #[serde(default)]
+    pub navigation: metrics::NavigationMetrics,
+    /// FMM-specific usage tracking.
+    #[serde(default)]
+    pub fmm_usage: metrics::FmmUsage,
 }
 
 impl RunResult {
@@ -54,6 +64,9 @@ impl RunResult {
             response,
             success: m.success,
             error: m.error,
+            tool_details: m.tool_details,
+            navigation: m.navigation,
+            fmm_usage: m.fmm_usage,
         }
     }
 }
@@ -80,9 +93,12 @@ impl ClaudeRunner {
                 "Glob".to_string(),
                 "Grep".to_string(),
                 "LS".to_string(),
+                "Edit".to_string(),
+                "Write".to_string(),
+                "Bash".to_string(),
             ],
             model: "sonnet".to_string(),
-            skip_permissions: false,
+            skip_permissions: true,
             enable_local_settings: false,
         }
     }
@@ -93,6 +109,11 @@ impl ClaudeRunner {
             enable_local_settings: true,
             ..Self::new()
         }
+    }
+
+    /// Set the model for this runner.
+    pub fn set_model(&mut self, model: &str) {
+        self.model = model.to_string();
     }
 
     const MAX_PROMPT_SIZE: usize = 100 * 1024;

@@ -356,6 +356,9 @@ mod tests {
             response: "test".to_string(),
             success: true,
             error: None,
+            tool_details: HashMap::new(),
+            navigation: Default::default(),
+            fmm_usage: Default::default(),
         }
     }
 

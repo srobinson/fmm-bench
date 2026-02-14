@@ -1,4 +1,7 @@
-//! Sandbox management for isolated comparison runs
+//! Sandbox management for isolated comparison runs.
+//!
+//! Creates paired sandbox directories (control + fmm) with identical repo
+//! checkouts. The fmm variant gets sidecars + CLAUDE.md + MCP config installed.
 
 use anyhow::{Context, Result};
 use std::fs;
@@ -11,7 +14,7 @@ pub struct Sandbox {
     pub root: PathBuf,
     /// Control variant directory (no FMM)
     pub control_dir: PathBuf,
-    /// FMM variant directory (with manifest)
+    /// FMM variant directory (with sidecars + CLAUDE.md + MCP)
     pub fmm_dir: PathBuf,
     /// Whether to cleanup on drop
     cleanup_on_drop: bool,
@@ -35,15 +38,49 @@ impl Sandbox {
         })
     }
 
-    /// Clone a repository into the sandbox
+    /// Clone a repository into the sandbox (both control and fmm dirs).
     pub fn clone_repo(&self, url: &str, branch: Option<&str>) -> Result<()> {
         validate_repo_url(url)?;
-        // Clone for control variant
         self.clone_to_dir(url, branch, &self.control_dir)?;
-
-        // Clone for FMM variant (or copy)
         self.clone_to_dir(url, branch, &self.fmm_dir)?;
+        Ok(())
+    }
 
+    /// Clone a repository at a specific commit SHA.
+    ///
+    /// Does a shallow clone then fetches the exact commit (needed for corpus
+    /// pinning where issues are tied to a specific commit). Shallow clones
+    /// only contain one commit, so we must fetch the target commit explicitly.
+    pub fn clone_repo_at_commit(
+        &self,
+        url: &str,
+        commit: &str,
+        branch: Option<&str>,
+    ) -> Result<()> {
+        validate_repo_url(url)?;
+        for dir in [&self.control_dir, &self.fmm_dir] {
+            self.clone_to_dir(url, branch, dir)?;
+            // Fetch the exact commit (shallow clones don't have it)
+            let fetch = Command::new("git")
+                .args(["fetch", "--depth=1", "origin", commit])
+                .current_dir(dir)
+                .output()
+                .context("Failed to fetch commit")?;
+            if !fetch.status.success() {
+                let stderr = String::from_utf8_lossy(&fetch.stderr);
+                anyhow::bail!("git fetch {} failed: {}", commit, stderr.trim());
+            }
+            // Checkout the fetched commit
+            let checkout = Command::new("git")
+                .args(["checkout", "FETCH_HEAD"])
+                .current_dir(dir)
+                .output()
+                .context("Failed to checkout commit")?;
+            if !checkout.status.success() {
+                let stderr = String::from_utf8_lossy(&checkout.stderr);
+                anyhow::bail!("git checkout FETCH_HEAD failed: {}", stderr.trim());
+            }
+        }
         Ok(())
     }
 
@@ -86,43 +123,77 @@ impl Sandbox {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
 
-    /// Generate FMM sidecars for the FMM variant
-    pub fn generate_fmm_manifest(&self) -> Result<()> {
-        let fmm_binary = std::env::current_exe().context("Failed to get current executable")?;
+    /// Generate FMM sidecars for the FMM variant using the `fmm` binary.
+    ///
+    /// Uses `fmm generate` which smartly creates new, updates stale, and
+    /// skips unchanged sidecars.
+    pub fn generate_fmm_sidecars(&self) -> Result<()> {
+        let fmm_path = find_fmm_binary()?;
 
-        let output = Command::new(&fmm_binary)
+        let output = Command::new(&fmm_path)
             .arg("generate")
-            .arg(".")
             .current_dir(&self.fmm_dir)
             .output()
-            .context("Failed to run fmm generate")?;
+            .context("Failed to run `fmm generate`")?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("Warning: fmm generate had issues: {}", stderr);
+            eprintln!("Warning: fmm generate had issues: {}", stderr.trim());
         }
 
         Ok(())
     }
 
-    /// Install skill file and MCP config in the FMM variant workspace.
-    /// This enables the Skill + MCP delivery mechanism (proven best by Exp15).
+    /// Install CLAUDE.md + .mcp.json in the FMM variant workspace.
+    ///
+    /// Runs `fmm init --all --no-generate` to install:
+    /// - `.claude/CLAUDE.md` with fmm navigation instructions
+    /// - `.mcp.json` with fmm MCP server configuration
+    /// - `.claude/skills/fmm-navigate.md` skill file
+    ///
+    /// The --no-generate flag skips sidecar generation since we already did it.
+    /// Exp14 proved LLMs don't discover .fmm organically — this init is critical.
     pub fn setup_fmm_integration(&self) -> Result<()> {
-        let fmm_binary = std::env::current_exe().context("Failed to get current executable")?;
+        let fmm_path = find_fmm_binary()?;
 
-        // Run `fmm init --all` which installs both skill and .mcp.json
-        let output = Command::new(&fmm_binary)
-            .arg("init")
-            .arg("--all")
+        let output = Command::new(&fmm_path)
+            .args(["init", "--all", "--no-generate"])
             .current_dir(&self.fmm_dir)
             .output()
-            .context("Failed to run fmm init")?;
+            .context("Failed to run `fmm init --all`")?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("fmm init --all failed: {}", stderr);
+            anyhow::bail!("fmm init --all failed: {}", stderr.trim());
         }
 
+        Ok(())
+    }
+
+    /// Reset git state in both sandbox dirs (between repeated runs).
+    pub fn reset_git_state(&self) -> Result<()> {
+        for dir in [&self.control_dir, &self.fmm_dir] {
+            if dir.exists() {
+                let output = Command::new("git")
+                    .args(["checkout", "."])
+                    .current_dir(dir)
+                    .output()
+                    .context("Failed to reset git state")?;
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    anyhow::bail!("git checkout . failed: {}", stderr);
+                }
+                let output = Command::new("git")
+                    .args(["clean", "-fd"])
+                    .current_dir(dir)
+                    .output()
+                    .context("Failed to clean untracked files")?;
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    anyhow::bail!("git clean -fd failed: {}", stderr);
+                }
+            }
+        }
         Ok(())
     }
 
@@ -148,6 +219,44 @@ impl Drop for Sandbox {
     }
 }
 
+/// Find the `fmm` binary in PATH or a well-known location.
+fn find_fmm_binary() -> Result<PathBuf> {
+    // Check FMM_BIN env var first (for testing / custom installs)
+    if let Ok(path) = std::env::var("FMM_BIN") {
+        let p = PathBuf::from(&path);
+        if p.exists() {
+            return Ok(p);
+        }
+        anyhow::bail!("FMM_BIN is set to '{}' but the file does not exist", path);
+    }
+
+    // Check if `fmm` is in PATH
+    let output = Command::new("which")
+        .arg("fmm")
+        .output()
+        .context("Failed to search for fmm in PATH")?;
+
+    if output.status.success() {
+        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !path.is_empty() {
+            return Ok(PathBuf::from(path));
+        }
+    }
+
+    // Check common cargo install location
+    if let Some(home) = dirs::home_dir() {
+        let cargo_bin = home.join(".cargo/bin/fmm");
+        if cargo_bin.exists() {
+            return Ok(cargo_bin);
+        }
+    }
+
+    anyhow::bail!(
+        "Could not find `fmm` binary. Install it with `cargo install fmm` \
+         or set FMM_BIN environment variable."
+    )
+}
+
 /// Validate job_id contains only safe path characters
 fn validate_job_id(job_id: &str) -> Result<()> {
     if job_id.is_empty() {
@@ -170,7 +279,6 @@ fn validate_repo_url(url: &str) -> Result<()> {
     if !url.starts_with("https://") {
         anyhow::bail!("Repository URL must use HTTPS: {}", url);
     }
-    // Ensure it looks like a valid git host URL (github, gitlab, bitbucket, etc.)
     let host = url
         .strip_prefix("https://")
         .and_then(|s| s.split('/').next())
@@ -178,7 +286,6 @@ fn validate_repo_url(url: &str) -> Result<()> {
     if host.is_empty() || !host.contains('.') {
         anyhow::bail!("Invalid repository host in URL: {}", url);
     }
-    // Reject URLs with suspicious characters that could be used for injection
     if url.contains("..") || url.contains('\0') || url.contains(';') || url.contains('|') {
         anyhow::bail!("Repository URL contains invalid characters: {}", url);
     }
@@ -193,8 +300,6 @@ mod tests {
     fn test_sandbox_creation() {
         let sandbox = Sandbox::new("test-123").unwrap();
         assert!(sandbox.root.exists());
-
-        // Cleanup
         sandbox.cleanup();
         assert!(!sandbox.root.exists());
     }
@@ -262,7 +367,6 @@ mod tests {
             let sandbox = Sandbox::new("drop-test-001").unwrap();
             root_path = sandbox.root.clone();
             assert!(root_path.exists());
-            // sandbox drops here
         }
         assert!(!root_path.exists());
     }
@@ -274,10 +378,27 @@ mod tests {
             let mut sandbox = Sandbox::new("keep-test-001").unwrap();
             sandbox.keep_on_drop();
             root_path = sandbox.root.clone();
-            // sandbox drops here but should NOT cleanup
         }
         assert!(root_path.exists());
-        // Manual cleanup
         let _ = fs::remove_dir_all(&root_path);
+    }
+
+    #[test]
+    fn test_find_fmm_binary_and_env_override() {
+        // First: ensure fmm is findable with clean env
+        // (remove FMM_BIN in case another test leaked it)
+        std::env::remove_var("FMM_BIN");
+        let result = find_fmm_binary();
+        assert!(
+            result.is_ok(),
+            "fmm binary should be findable: {:?}",
+            result.err()
+        );
+
+        // Second: FMM_BIN pointing to nonexistent path should error
+        std::env::set_var("FMM_BIN", "/nonexistent/fmm");
+        let result = find_fmm_binary();
+        assert!(result.is_err());
+        std::env::remove_var("FMM_BIN");
     }
 }

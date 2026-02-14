@@ -6,10 +6,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::cache::{CacheKey, CacheManager};
-use crate::report::{ComparisonReport, ReportFormat};
+use crate::evaluator;
+use crate::issue::GitHubIssue;
+use crate::report::{ComparisonReport, ReportFormat, TaskResultRow};
 use crate::runner::{ClaudeRunner, RunResult};
 use crate::sandbox::Sandbox;
-use crate::tasks::{Task, TaskSet};
+use crate::tasks::{Task, TaskCategory, TaskSet};
 
 /// Options for comparison run
 #[derive(Debug, Clone)]
@@ -68,8 +70,11 @@ impl Orchestrator {
     /// Create a new orchestrator
     pub fn new(options: CompareOptions) -> Result<Self> {
         let cache = CacheManager::new(None)?;
-        let control_runner = ClaudeRunner::new();
-        let fmm_runner = ClaudeRunner::with_local_settings();
+        let mut control_runner = ClaudeRunner::new();
+        let mut fmm_runner = ClaudeRunner::with_local_settings();
+
+        control_runner.set_model(&options.model);
+        fmm_runner.set_model(&options.model);
 
         Ok(Self {
             options,
@@ -105,7 +110,7 @@ impl Orchestrator {
 
         // Step 2: Generate FMM sidecars + install skill + MCP for FMM variant
         println!("{} Setting up FMM variant...", "🔧".yellow());
-        sandbox.generate_fmm_manifest()?;
+        sandbox.generate_fmm_sidecars()?;
 
         let sidecar_count = walkdir::WalkDir::new(&sandbox.fmm_dir)
             .into_iter()
@@ -150,7 +155,7 @@ impl Orchestrator {
         );
 
         // Step 4: Run tasks
-        let mut results: Vec<(Task, RunResult, RunResult)> = vec![];
+        let mut results: Vec<TaskResultRow> = vec![];
 
         for (i, task) in task_set.tasks.iter().enumerate() {
             println!(
@@ -204,7 +209,7 @@ impl Orchestrator {
                 control_result.tool_calls, fmm_result.tool_calls, reduction
             );
 
-            results.push((task.clone(), control_result, fmm_result));
+            results.push((task.clone(), control_result, fmm_result, None, None));
         }
 
         // Step 5: Generate report
@@ -233,6 +238,189 @@ impl Orchestrator {
         );
 
         println!("\n{} Total cost: ${:.4}", "💰".yellow(), self.total_cost);
+
+        Ok(report)
+    }
+
+    /// Run an issue-driven A/B comparison.
+    ///
+    /// Clones the repo, sets up control + fmm sandboxes, runs the issue prompt
+    /// against both, and compares results.
+    pub fn run_issue(&mut self, issue: &GitHubIssue) -> Result<ComparisonReport> {
+        let job_id = generate_job_id();
+        let url = &issue.issue_ref.clone_url();
+        let issue_label = issue.issue_ref.short_id();
+
+        println!(
+            "{} Issue: {} — {}",
+            ">>".yellow(),
+            issue_label.cyan().bold(),
+            issue.title.white()
+        );
+        println!("{} Job ID: {}", ">>".yellow(), job_id.cyan());
+
+        // Step 1: Create sandbox and clone repo
+        println!("{} Setting up sandbox...", ">>".yellow());
+        let sandbox = Sandbox::new(&job_id)?;
+        sandbox.clone_repo(url, self.options.branch.as_deref())?;
+
+        let commit_sha = sandbox.get_commit_sha(&sandbox.control_dir)?;
+        let sha_short = &commit_sha[..commit_sha.len().min(8)];
+        println!("  {} Cloned at commit {}", "+".green(), sha_short.dimmed());
+
+        // Step 2: Generate FMM sidecars + init for FMM variant
+        println!("{} Setting up FMM variant...", ">>".yellow());
+        sandbox.generate_fmm_sidecars()?;
+
+        let sidecar_count = walkdir::WalkDir::new(&sandbox.fmm_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().and_then(|ext| ext.to_str()) == Some("fmm"))
+            .count();
+        if sidecar_count > 0 {
+            println!(
+                "  {} {} sidecar files generated",
+                "+".green(),
+                sidecar_count
+            );
+        } else {
+            println!(
+                "  {} No sidecars generated (unsupported language?)",
+                "!".yellow()
+            );
+        }
+
+        sandbox.setup_fmm_integration()?;
+        println!("  {} Installed CLAUDE.md + MCP config", "+".green());
+
+        // Step 3: Build task from issue prompt
+        let task = Task {
+            id: format!("issue-{}", issue.issue_ref.number),
+            name: issue.title.clone(),
+            prompt: issue.to_prompt(),
+            category: TaskCategory::Exploration,
+            expected_patterns: vec![],
+            max_turns: 50,
+            max_budget_usd: self.options.max_budget,
+        };
+
+        // Step 4: Run N times
+        let mut all_results: Vec<TaskResultRow> = vec![];
+
+        for run_idx in 0..self.options.runs {
+            if self.options.runs > 1 {
+                println!(
+                    "\n{} Run {}/{}",
+                    ">>".yellow(),
+                    run_idx + 1,
+                    self.options.runs
+                );
+            }
+
+            // Check budget
+            if self.total_cost >= self.options.max_budget * 2.0 * self.options.runs as f64 {
+                println!(
+                    "{} Budget limit reached (${:.2})",
+                    "!".yellow(),
+                    self.total_cost
+                );
+                break;
+            }
+
+            // Run control
+            let control_result =
+                self.run_task_with_cache(&task, &sandbox.control_dir, "control", url, &commit_sha)?;
+
+            // Run FMM
+            let fmm_context = self.build_fmm_context(&sandbox.fmm_dir)?;
+            let fmm_result = self.run_task_with_fmm(
+                &task,
+                &sandbox.fmm_dir,
+                "fmm",
+                url,
+                &commit_sha,
+                &fmm_context,
+            )?;
+
+            self.total_cost += control_result.total_cost_usd + fmm_result.total_cost_usd;
+
+            let reduction = if control_result.tool_calls > 0 {
+                ((control_result.tool_calls as f64 - fmm_result.tool_calls as f64)
+                    / control_result.tool_calls as f64)
+                    * 100.0
+            } else {
+                0.0
+            };
+
+            println!(
+                "  Control: {} tools, ${:.4} | FMM: {} tools, ${:.4} | Reduction: {:.1}%",
+                control_result.tool_calls,
+                control_result.total_cost_usd,
+                fmm_result.tool_calls,
+                fmm_result.total_cost_usd,
+                reduction
+            );
+
+            // Post-run evaluation
+            println!("  {} Evaluating...", ">>".yellow());
+            let control_eval = evaluator::evaluate(&sandbox.control_dir).ok();
+            let fmm_eval = evaluator::evaluate(&sandbox.fmm_dir).ok();
+
+            if let (Some(ce), Some(fe)) = (&control_eval, &fmm_eval) {
+                println!(
+                    "  Control: grade {} (+{}/-{}) | FMM: grade {} (+{}/-{})",
+                    ce.grade,
+                    ce.diff_lines_added,
+                    ce.diff_lines_removed,
+                    fe.grade,
+                    fe.diff_lines_added,
+                    fe.diff_lines_removed
+                );
+            }
+
+            all_results.push((
+                task.clone(),
+                control_result,
+                fmm_result,
+                control_eval,
+                fmm_eval,
+            ));
+
+            // Reset sandbox git state between runs so each starts fresh.
+            // Must re-setup FMM after reset because git clean -fd removes
+            // untracked files (sidecars, .claude/, .mcp.json).
+            if run_idx + 1 < self.options.runs {
+                sandbox.reset_git_state()?;
+                sandbox.generate_fmm_sidecars()?;
+                sandbox.setup_fmm_integration()?;
+            }
+        }
+
+        // Step 5: Generate report
+        println!("\n{} Generating report...", ">>".yellow());
+        let branch = self
+            .options
+            .branch
+            .clone()
+            .unwrap_or_else(|| "main".to_string());
+        let report =
+            ComparisonReport::new(job_id, url.to_string(), commit_sha, branch, all_results);
+
+        if let Some(ref output_dir) = self.options.output {
+            let saved = report.save(output_dir, self.options.format)?;
+            for path in saved {
+                println!("  {} Saved: {}", "+".green(), path.dimmed());
+            }
+        }
+
+        let report_path = self.cache.save_report(&report)?;
+        println!(
+            "  {} Cached: {}",
+            "+".green(),
+            report_path.display().to_string().dimmed()
+        );
+
+        println!("\n{} Total cost: ${:.4}", ">>".yellow(), self.total_cost);
 
         Ok(report)
     }
@@ -364,20 +552,30 @@ Only open source files you need to edit."#;
 }
 
 fn generate_job_id() -> String {
+    use std::io::Read;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    // Safe default: UNIX_EPOCH is always in the past; zero duration produces a valid job ID
-    let duration = SystemTime::now()
+    let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .as_secs();
 
-    let timestamp = duration.as_secs();
-    let nanos = duration.subsec_nanos();
+    let random: u32 = std::fs::File::open("/dev/urandom")
+        .and_then(|mut f| {
+            let mut buf = [0u8; 4];
+            f.read_exact(&mut buf)?;
+            Ok(u32::from_ne_bytes(buf))
+        })
+        .unwrap_or_else(|_| {
+            // Fallback: combine nanos with process id
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos();
+            nanos ^ (std::process::id() << 16)
+        });
 
-    // Use nanoseconds for randomness within the same second
-    let random: u16 = ((nanos / 1000) % 65536) as u16;
-
-    format!("cmp-{:x}-{:04x}", timestamp, random)
+    format!("cmp-{:x}-{:08x}", timestamp, random)
 }
 
 #[cfg(test)]
@@ -477,6 +675,9 @@ mod tests {
             response: "The main entry point is src/main.rs".to_string(),
             success: true,
             error: None,
+            tool_details: HashMap::new(),
+            navigation: Default::default(),
+            fmm_usage: Default::default(),
         };
 
         let fmm = RunResult {
@@ -495,6 +696,9 @@ mod tests {
             response: "The main entry point is src/main.rs".to_string(),
             success: true,
             error: None,
+            tool_details: HashMap::new(),
+            navigation: Default::default(),
+            fmm_usage: Default::default(),
         };
 
         let report = ComparisonReport::new(
@@ -502,7 +706,7 @@ mod tests {
             "https://github.com/test/repo".to_string(),
             "abc123def456".to_string(),
             "main".to_string(),
-            vec![(task, control, fmm)],
+            vec![(task, control, fmm, None, None)],
         );
 
         assert_eq!(report.summary.tasks_run, 1);

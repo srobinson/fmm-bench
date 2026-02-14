@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+use crate::evaluator::EvalScores;
 use crate::runner::RunResult;
 use crate::tasks::Task;
 
@@ -49,6 +50,12 @@ pub struct TaskComparison {
     pub fmm: RunResult,
     /// Calculated savings
     pub savings: TaskSavings,
+    /// Post-run evaluation of control variant
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub control_eval: Option<EvalScores>,
+    /// Post-run evaluation of FMM variant
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fmm_eval: Option<EvalScores>,
 }
 
 /// Savings metrics for a task
@@ -108,20 +115,29 @@ pub struct OverallSavings {
     pub duration_reduction_pct: f64,
 }
 
+/// A single task result with optional evaluations.
+pub type TaskResultRow = (
+    Task,
+    RunResult,
+    RunResult,
+    Option<EvalScores>,
+    Option<EvalScores>,
+);
+
 impl ComparisonReport {
-    /// Create a new report from task results
+    /// Create a new report from task results with optional evaluations.
     pub fn new(
         job_id: String,
         repo_url: String,
         commit_sha: String,
         branch: String,
-        results: Vec<(Task, RunResult, RunResult)>,
+        results: Vec<TaskResultRow>,
     ) -> Self {
         let timestamp = chrono::Utc::now().to_rfc3339();
 
         let task_results: Vec<TaskComparison> = results
             .into_iter()
-            .map(|(task, control, fmm)| {
+            .map(|(task, control, fmm, control_eval, fmm_eval)| {
                 let savings = calculate_savings(&control, &fmm);
                 TaskComparison {
                     task_id: task.id,
@@ -129,6 +145,8 @@ impl ComparisonReport {
                     control,
                     fmm,
                     savings,
+                    control_eval,
+                    fmm_eval,
                 }
             })
             .collect();
@@ -400,13 +418,59 @@ impl ComparisonReport {
                 task.control.total_cost_usd, task.fmm.total_cost_usd
             ));
             md.push_str(&format!(
-                "| Duration | {}ms | {}ms |\n\n",
+                "| Duration | {}ms | {}ms |\n",
                 task.control.duration_ms, task.fmm.duration_ms
             ));
 
+            // Navigation efficiency
+            let cn = &task.control.navigation;
+            let fn_ = &task.fmm.navigation;
+            md.push_str(&format!(
+                "| Files Read | {} | {} |\n",
+                cn.unique_files_read, fn_.unique_files_read
+            ));
+            md.push_str(&format!(
+                "| Files Edited | {} | {} |\n",
+                cn.unique_files_edited, fn_.unique_files_edited
+            ));
+            md.push_str(&format!(
+                "| First Edit Turn | {} | {} |\n",
+                if cn.first_edit_turn > 0 {
+                    cn.first_edit_turn.to_string()
+                } else {
+                    "-".to_string()
+                },
+                if fn_.first_edit_turn > 0 {
+                    fn_.first_edit_turn.to_string()
+                } else {
+                    "-".to_string()
+                },
+            ));
+            md.push_str(&format!(
+                "| Exploration Turns | {} | {} |\n",
+                cn.exploration_turns, fn_.exploration_turns
+            ));
+            md.push_str(&format!(
+                "| Implementation Turns | {} | {} |\n",
+                cn.implementation_turns, fn_.implementation_turns
+            ));
+
+            // FMM usage (only if non-zero)
+            let fu = &task.fmm.fmm_usage;
+            if fu.sidecars_read > 0 || fu.mcp_tool_calls > 0 {
+                md.push_str(&format!(
+                    "| FMM Sidecars Read | - | {} |\n",
+                    fu.sidecars_read
+                ));
+                md.push_str(&format!("| FMM MCP Calls | - | {} |\n", fu.mcp_tool_calls));
+            }
+            md.push('\n');
+
             if !task.control.tools_by_name.is_empty() {
                 md.push_str("**Control Tools Used:**\n");
-                for (tool, count) in &task.control.tools_by_name {
+                let mut tools: Vec<_> = task.control.tools_by_name.iter().collect();
+                tools.sort_by(|a, b| b.1.cmp(a.1));
+                for (tool, count) in tools {
                     md.push_str(&format!("- {}: {}\n", tool, count));
                 }
                 md.push('\n');
@@ -414,14 +478,73 @@ impl ComparisonReport {
 
             if !task.fmm.tools_by_name.is_empty() {
                 md.push_str("**FMM Tools Used:**\n");
-                for (tool, count) in &task.fmm.tools_by_name {
+                let mut tools: Vec<_> = task.fmm.tools_by_name.iter().collect();
+                tools.sort_by(|a, b| b.1.cmp(a.1));
+                for (tool, count) in tools {
                     md.push_str(&format!("- {}: {}\n", tool, count));
                 }
                 md.push('\n');
             }
+
+            // Evaluation scores
+            if task.control_eval.is_some() || task.fmm_eval.is_some() {
+                md.push_str("**Evaluation:**\n\n");
+                md.push_str("| Check | Control | FMM |\n");
+                md.push_str("|-------|---------|-----|\n");
+
+                let ce = task.control_eval.as_ref();
+                let fe = task.fmm_eval.as_ref();
+
+                md.push_str(&format!(
+                    "| Has Commit | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.has_commit)),
+                    eval_bool(fe.map(|e| e.has_commit)),
+                ));
+                md.push_str(&format!(
+                    "| Tests Exist | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.tests_existed)),
+                    eval_bool(fe.map(|e| e.tests_existed)),
+                ));
+                md.push_str(&format!(
+                    "| Tests Pass | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.tests_pass)),
+                    eval_bool(fe.map(|e| e.tests_pass)),
+                ));
+                md.push_str(&format!(
+                    "| Build Passes | {} | {} |\n",
+                    eval_bool(ce.map(|e| e.build_passes)),
+                    eval_bool(fe.map(|e| e.build_passes)),
+                ));
+                md.push_str(&format!(
+                    "| Diff | {} | {} |\n",
+                    eval_diff(ce),
+                    eval_diff(fe),
+                ));
+                md.push_str(&format!(
+                    "| Grade | {} | {} |\n\n",
+                    ce.map_or("-", |e| &e.grade),
+                    fe.map_or("-", |e| &e.grade),
+                ));
+            }
         }
 
         md
+    }
+}
+
+fn eval_bool(val: Option<bool>) -> &'static str {
+    match val {
+        Some(true) => "Yes",
+        Some(false) => "No",
+        None => "-",
+    }
+}
+
+fn eval_diff(eval: Option<&EvalScores>) -> String {
+    match eval {
+        Some(e) if e.has_commit => format!("+{}/-{}", e.diff_lines_added, e.diff_lines_removed),
+        Some(_) => "none".to_string(),
+        None => "-".to_string(),
     }
 }
 
@@ -511,6 +634,9 @@ mod tests {
             response: "test".to_string(),
             success: true,
             error: None,
+            tool_details: HashMap::new(),
+            navigation: Default::default(),
+            fmm_usage: Default::default(),
         }
     }
 
@@ -536,7 +662,7 @@ mod tests {
             "https://github.com/test/repo".to_string(),
             "abc123".to_string(),
             "main".to_string(),
-            vec![(task, control, fmm)],
+            vec![(task, control, fmm, None, None)],
         );
 
         assert_eq!(report.summary.tasks_run, 1);
