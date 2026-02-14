@@ -7,8 +7,8 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Instant;
 
-use crate::tasks::Task;
 use crate::metrics;
+use crate::tasks::Task;
 
 /// Result of a single benchmark run
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,9 +80,12 @@ impl ClaudeRunner {
                 "Glob".to_string(),
                 "Grep".to_string(),
                 "LS".to_string(),
+                "Edit".to_string(),
+                "Write".to_string(),
+                "Bash".to_string(),
             ],
             model: "sonnet".to_string(),
-            skip_permissions: false,
+            skip_permissions: true,
             enable_local_settings: false,
         }
     }
@@ -93,6 +96,11 @@ impl ClaudeRunner {
             enable_local_settings: true,
             ..Self::new()
         }
+    }
+
+    /// Set the model for this runner.
+    pub fn set_model(&mut self, model: &str) {
+        self.model = model.to_string();
     }
 
     const MAX_PROMPT_SIZE: usize = 100 * 1024;

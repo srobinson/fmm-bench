@@ -126,6 +126,34 @@ impl Sandbox {
         Ok(())
     }
 
+    /// Reset git state in both sandbox dirs (between repeated runs).
+    pub fn reset_git_state(&self) -> Result<()> {
+        for dir in [&self.control_dir, &self.fmm_dir] {
+            if dir.exists() {
+                let output = Command::new("git")
+                    .args(["checkout", "."])
+                    .current_dir(dir)
+                    .output()
+                    .context("Failed to reset git state")?;
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    anyhow::bail!("git checkout . failed: {}", stderr);
+                }
+                // Remove untracked files
+                let output = Command::new("git")
+                    .args(["clean", "-fd"])
+                    .current_dir(dir)
+                    .output()
+                    .context("Failed to clean untracked files")?;
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    anyhow::bail!("git clean -fd failed: {}", stderr);
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Disable cleanup on drop (for debugging/testing)
     #[cfg(test)]
     pub fn keep_on_drop(&mut self) {
