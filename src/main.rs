@@ -10,6 +10,7 @@ fn main() -> Result<()> {
         Commands::Run(args) => cmd_run(args),
         Commands::Compare(args) => cmd_compare(args),
         Commands::Batch(args) => cmd_batch(args),
+        Commands::Validate(args) => cmd_validate(args),
     }
 }
 
@@ -137,6 +138,44 @@ fn cmd_batch(args: BatchArgs) -> Result<()> {
     Ok(())
 }
 
+/// Validate a corpus file.
+fn cmd_validate(args: ValidateArgs) -> Result<()> {
+    let corpus = fmm_bench::batch::load_corpus(&args.corpus)?;
+
+    println!(
+        "{} Validating {} corpus entries...\n",
+        ">>".yellow(),
+        corpus.len()
+    );
+
+    let results = fmm_bench::batch::validate_corpus(&corpus);
+
+    let accessible = results.iter().filter(|r| r.issue_accessible).count();
+    let failed = results.iter().filter(|r| !r.issue_accessible).count();
+
+    println!(
+        "\n{} {} accessible, {} failed out of {}",
+        ">>".green().bold(),
+        accessible,
+        failed,
+        results.len()
+    );
+
+    if failed > 0 {
+        println!("\n{} Failed entries:", "!".red());
+        for r in results.iter().filter(|r| !r.issue_accessible) {
+            println!(
+                "  - {}: {}",
+                r.id,
+                r.error.as_deref().unwrap_or("unknown error")
+            );
+        }
+        anyhow::bail!("{} corpus entries failed validation", failed);
+    }
+
+    Ok(())
+}
+
 fn to_report_format(fmt: OutputFormat) -> fmm_bench::ReportFormat {
     match fmt {
         OutputFormat::Json => fmm_bench::ReportFormat::Json,
@@ -164,6 +203,8 @@ enum Commands {
     Compare(CompareArgs),
     /// Run batch A/B comparisons across a corpus of issues
     Batch(BatchArgs),
+    /// Validate a corpus file (check all issues are accessible)
+    Validate(ValidateArgs),
 }
 
 #[derive(Parser)]
@@ -264,6 +305,12 @@ struct BatchArgs {
     /// Model to use
     #[arg(long, default_value = "sonnet")]
     model: String,
+}
+
+#[derive(Parser)]
+struct ValidateArgs {
+    /// Path to corpus JSON file
+    corpus: PathBuf,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]

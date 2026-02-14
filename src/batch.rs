@@ -34,6 +34,15 @@ pub struct CorpusEntry {
     /// Expected files to be touched (for validation)
     #[serde(default)]
     pub expected_files: Vec<String>,
+    /// Complexity: simple, medium, complex
+    #[serde(default = "default_complexity")]
+    pub complexity: String,
+    /// Estimated number of files to touch
+    #[serde(default)]
+    pub estimated_files: u32,
+    /// Human-readable notes
+    #[serde(default)]
+    pub notes: String,
     /// Optional branch to clone
     #[serde(default)]
     pub branch: Option<String>,
@@ -48,6 +57,10 @@ fn default_size() -> String {
 
 fn default_type() -> String {
     "bugfix".to_string()
+}
+
+fn default_complexity() -> String {
+    "medium".to_string()
 }
 
 /// Options for a batch run.
@@ -221,6 +234,51 @@ pub fn run_batch(corpus: &[CorpusEntry], opts: &BatchOptions) -> Result<Aggregat
 fn run_single_issue(issue: &GitHubIssue, opts: CompareOptions) -> Result<ComparisonReport> {
     let mut orchestrator = Orchestrator::new(opts)?;
     orchestrator.run_issue(issue)
+}
+
+/// Validation result for a single corpus entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationResult {
+    pub id: String,
+    pub issue_accessible: bool,
+    pub issue_title: Option<String>,
+    pub error: Option<String>,
+}
+
+/// Validate all corpus entries: check that issues are fetchable via `gh`.
+pub fn validate_corpus(corpus: &[CorpusEntry]) -> Vec<ValidationResult> {
+    let mut results = vec![];
+
+    for (i, entry) in corpus.iter().enumerate() {
+        print!("  [{}/{}] {} ...", i + 1, corpus.len(), entry.id.white());
+
+        let issue_id = format!("{}#{}", entry.repo, entry.issue);
+        let result =
+            match issue::parse_issue_identifier(&issue_id).and_then(|r| issue::fetch_issue(&r)) {
+                Ok(gh_issue) => {
+                    println!(" {} {}", "+".green(), gh_issue.title.dimmed());
+                    ValidationResult {
+                        id: entry.id.clone(),
+                        issue_accessible: true,
+                        issue_title: Some(gh_issue.title),
+                        error: None,
+                    }
+                }
+                Err(e) => {
+                    println!(" {} {}", "!".red(), e);
+                    ValidationResult {
+                        id: entry.id.clone(),
+                        issue_accessible: false,
+                        issue_title: None,
+                        error: Some(e.to_string()),
+                    }
+                }
+            };
+
+        results.push(result);
+    }
+
+    results
 }
 
 #[cfg(test)]
