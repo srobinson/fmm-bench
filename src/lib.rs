@@ -1,9 +1,11 @@
+pub mod aggregate;
+pub mod batch;
 mod cache;
 pub mod evaluator;
 pub mod issue;
 pub mod metrics;
 pub mod orchestrator;
-mod report;
+pub mod report;
 mod runner;
 pub mod sandbox;
 mod tasks;

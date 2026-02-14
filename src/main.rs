@@ -9,6 +9,7 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Run(args) => cmd_run(args),
         Commands::Compare(args) => cmd_compare(args),
+        Commands::Batch(args) => cmd_batch(args),
     }
 }
 
@@ -89,6 +90,53 @@ fn cmd_compare(args: CompareArgs) -> Result<()> {
     Ok(())
 }
 
+/// Run batch A/B comparisons across a corpus.
+fn cmd_batch(args: BatchArgs) -> Result<()> {
+    let corpus = fmm_bench::batch::load_corpus(&args.corpus)?;
+
+    println!(
+        "{} Loaded {} issues from {}",
+        ">>".yellow(),
+        corpus.len(),
+        args.corpus.display()
+    );
+
+    let opts = fmm_bench::batch::BatchOptions {
+        budget: args.budget,
+        runs: args.runs,
+        filter: args.filter,
+        resume: args.resume,
+        output: args.output,
+        model: args.model,
+    };
+
+    let aggregate = fmm_bench::batch::run_batch(&corpus, &opts)?;
+
+    println!("\n{}", "=".repeat(60).dimmed());
+    println!("{}", "AGGREGATE RESULTS".green().bold());
+    println!("{}", "=".repeat(60).dimmed());
+
+    println!(
+        "  Issues: {}/{} completed",
+        aggregate.issues_completed, aggregate.issues_total
+    );
+    println!("  Total cost: ${:.2}", aggregate.total_cost);
+
+    let s = &aggregate.summary;
+    if s.n > 0 {
+        println!(
+            "  Tool calls: {:.1} (ctrl) vs {:.1} (fmm) = {:.1}% reduction",
+            s.tool_calls.control_mean, s.tool_calls.fmm_mean, s.tool_calls.delta_pct
+        );
+        println!(
+            "  Cost: ${:.3} (ctrl) vs ${:.3} (fmm) = {:.1}% savings",
+            s.cost.control_mean, s.cost.fmm_mean, s.cost.delta_pct
+        );
+    }
+
+    Ok(())
+}
+
 fn to_report_format(fmt: OutputFormat) -> fmm_bench::ReportFormat {
     match fmt {
         OutputFormat::Json => fmm_bench::ReportFormat::Json,
@@ -114,6 +162,8 @@ enum Commands {
     Run(RunArgs),
     /// Run task-based comparison on a repository (original mode)
     Compare(CompareArgs),
+    /// Run batch A/B comparisons across a corpus of issues
+    Batch(BatchArgs),
 }
 
 #[derive(Parser)]
@@ -182,6 +232,36 @@ struct CompareArgs {
     #[arg(long)]
     quick: bool,
 
+    #[arg(long, default_value = "sonnet")]
+    model: String,
+}
+
+#[derive(Parser)]
+struct BatchArgs {
+    /// Path to corpus JSON file
+    corpus: PathBuf,
+
+    /// Maximum total budget in USD
+    #[arg(long, default_value = "50.0")]
+    budget: f64,
+
+    /// Number of runs per issue (for statistical significance)
+    #[arg(long, default_value = "1")]
+    runs: u32,
+
+    /// Filter by language (case-insensitive)
+    #[arg(long)]
+    filter: Option<String>,
+
+    /// Skip issues with cached results
+    #[arg(long)]
+    resume: bool,
+
+    /// Output directory for aggregate report
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+
+    /// Model to use
     #[arg(long, default_value = "sonnet")]
     model: String,
 }
