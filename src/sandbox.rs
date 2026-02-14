@@ -49,7 +49,8 @@ impl Sandbox {
     /// Clone a repository at a specific commit SHA.
     ///
     /// Does a shallow clone then fetches the exact commit (needed for corpus
-    /// pinning where issues are tied to a specific commit).
+    /// pinning where issues are tied to a specific commit). Shallow clones
+    /// only contain one commit, so we must fetch the target commit explicitly.
     pub fn clone_repo_at_commit(
         &self,
         url: &str,
@@ -59,15 +60,25 @@ impl Sandbox {
         validate_repo_url(url)?;
         for dir in [&self.control_dir, &self.fmm_dir] {
             self.clone_to_dir(url, branch, dir)?;
-            // Checkout specific commit
-            let output = Command::new("git")
-                .args(["checkout", commit])
+            // Fetch the exact commit (shallow clones don't have it)
+            let fetch = Command::new("git")
+                .args(["fetch", "--depth=1", "origin", commit])
+                .current_dir(dir)
+                .output()
+                .context("Failed to fetch commit")?;
+            if !fetch.status.success() {
+                let stderr = String::from_utf8_lossy(&fetch.stderr);
+                anyhow::bail!("git fetch {} failed: {}", commit, stderr.trim());
+            }
+            // Checkout the fetched commit
+            let checkout = Command::new("git")
+                .args(["checkout", "FETCH_HEAD"])
                 .current_dir(dir)
                 .output()
                 .context("Failed to checkout commit")?;
-            if !output.status.success() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                anyhow::bail!("git checkout {} failed: {}", commit, stderr.trim());
+            if !checkout.status.success() {
+                let stderr = String::from_utf8_lossy(&checkout.stderr);
+                anyhow::bail!("git checkout FETCH_HEAD failed: {}", stderr.trim());
             }
         }
         Ok(())

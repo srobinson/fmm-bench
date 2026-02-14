@@ -70,12 +70,16 @@ pub struct IssueResult {
 
 impl AggregateReport {
     /// Build an aggregate report from individual comparison reports.
+    ///
+    /// `issues_attempted` is the total number of issues that were attempted
+    /// (including failures that didn't produce reports).
     pub fn from_reports(
         reports: Vec<(CorpusEntry, ComparisonReport)>,
         model: &str,
         runs_per_issue: u32,
+        issues_attempted: usize,
     ) -> Self {
-        let issues_total = reports.len();
+        let issues_total = issues_attempted;
 
         let mut all_pairs: Vec<MetricPair> = vec![];
         let mut by_lang: HashMap<String, Vec<MetricPair>> = HashMap::new();
@@ -225,7 +229,9 @@ impl AggregateReport {
             md.push_str("## By Codebase Size\n\n");
             md.push_str("| Size | N | Ctrl Tools | FMM Tools | Delta |\n");
             md.push_str("|------|---|-----------|-----------|-------|\n");
-            for (size, s) in &self.by_size {
+            let mut sizes: Vec<_> = self.by_size.iter().collect();
+            sizes.sort_by_key(|(k, _)| (*k).clone());
+            for (size, s) in &sizes {
                 md.push_str(&format!(
                     "| {} | {} | {:.1} | {:.1} | {:.1}% |\n",
                     size,
@@ -583,7 +589,7 @@ mod tests {
 
     #[test]
     fn test_empty_aggregate() {
-        let report = AggregateReport::from_reports(vec![], "sonnet", 1);
+        let report = AggregateReport::from_reports(vec![], "sonnet", 1, 0);
         assert_eq!(report.issues_total, 0);
         assert_eq!(report.summary.n, 0);
         let md = report.to_markdown();

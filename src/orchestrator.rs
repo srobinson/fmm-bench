@@ -386,9 +386,13 @@ impl Orchestrator {
                 fmm_eval,
             ));
 
-            // Reset sandbox git state between runs so each starts fresh
+            // Reset sandbox git state between runs so each starts fresh.
+            // Must re-setup FMM after reset because git clean -fd removes
+            // untracked files (sidecars, .claude/, .mcp.json).
             if run_idx + 1 < self.options.runs {
                 sandbox.reset_git_state()?;
+                sandbox.generate_fmm_sidecars()?;
+                sandbox.setup_fmm_integration()?;
             }
         }
 
@@ -548,20 +552,30 @@ Only open source files you need to edit."#;
 }
 
 fn generate_job_id() -> String {
+    use std::io::Read;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    // Safe default: UNIX_EPOCH is always in the past; zero duration produces a valid job ID
-    let duration = SystemTime::now()
+    let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .as_secs();
 
-    let timestamp = duration.as_secs();
-    let nanos = duration.subsec_nanos();
+    let random: u32 = std::fs::File::open("/dev/urandom")
+        .and_then(|mut f| {
+            let mut buf = [0u8; 4];
+            f.read_exact(&mut buf)?;
+            Ok(u32::from_ne_bytes(buf))
+        })
+        .unwrap_or_else(|_| {
+            // Fallback: combine nanos with process id
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos();
+            nanos ^ (std::process::id() << 16)
+        });
 
-    // Use nanoseconds for randomness within the same second
-    let random: u16 = ((nanos / 1000) % 65536) as u16;
-
-    format!("cmp-{:x}-{:04x}", timestamp, random)
+    format!("cmp-{:x}-{:08x}", timestamp, random)
 }
 
 #[cfg(test)]

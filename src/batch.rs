@@ -212,7 +212,7 @@ pub fn run_batch(corpus: &[CorpusEntry], opts: &BatchOptions) -> Result<Aggregat
     );
 
     // Generate aggregate report
-    let aggregate = AggregateReport::from_reports(reports, &opts.model, opts.runs);
+    let aggregate = AggregateReport::from_reports(reports, &opts.model, opts.runs, filtered.len());
 
     // Save aggregate if output dir specified
     if let Some(ref output_dir) = opts.output {

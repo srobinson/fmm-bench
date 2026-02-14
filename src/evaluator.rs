@@ -69,31 +69,47 @@ struct DiffStats {
 }
 
 fn capture_diff_stats(dir: &Path) -> Result<DiffStats> {
-    // Use git diff to see what Claude changed (committed or uncommitted)
-    let output = Command::new("git")
-        .args(["diff", "HEAD", "--numstat"])
+    // Check how many commits exist (shallow clones may only have 1)
+    let log_output = Command::new("git")
+        .args(["rev-list", "--count", "HEAD"])
         .current_dir(dir)
         .output()
-        .context("git diff failed")?;
+        .ok();
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let commit_count: u32 = log_output
+        .as_ref()
+        .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().parse().ok())
+        .unwrap_or(1);
 
-    // Also check for commits Claude made
-    let committed = Command::new("git")
-        .args(["diff", "HEAD~1", "--numstat"])
-        .current_dir(dir)
-        .output();
-
-    // Prefer committed diff if it has content, else use working tree diff
-    let diff_text = if let Ok(ref co) = committed {
-        let co_out = String::from_utf8_lossy(&co.stdout);
-        if !co_out.trim().is_empty() {
-            co_out.to_string()
-        } else {
-            stdout.to_string()
-        }
+    // If Claude committed (>1 commit), diff against parent to see committed changes
+    let committed_diff = if commit_count >= 2 {
+        let output = Command::new("git")
+            .args(["diff", "HEAD~1", "--numstat"])
+            .current_dir(dir)
+            .output()
+            .ok();
+        output.and_then(|o| {
+            let text = String::from_utf8_lossy(&o.stdout).to_string();
+            if o.status.success() && !text.trim().is_empty() {
+                Some(text)
+            } else {
+                None
+            }
+        })
     } else {
-        stdout.to_string()
+        None
+    };
+
+    // Fall back to uncommitted working-tree diff
+    let diff_text = if let Some(text) = committed_diff {
+        text
+    } else {
+        let output = Command::new("git")
+            .args(["diff", "HEAD", "--numstat"])
+            .current_dir(dir)
+            .output()
+            .context("git diff failed")?;
+        String::from_utf8_lossy(&output.stdout).to_string()
     };
 
     parse_numstat(&diff_text)
@@ -156,9 +172,10 @@ pub fn detect_test_runner(dir: &Path) -> Option<Vec<String>> {
                         && !test_str.contains("no test specified")
                         && !test_str.contains("exit 1")
                     {
-                        // Use npm if npm lockfile exists, pnpm if pnpm lockfile, else npm
                         let runner = if dir.join("pnpm-lock.yaml").exists() {
                             "pnpm"
+                        } else if dir.join("yarn.lock").exists() {
+                            "yarn"
                         } else {
                             "npm"
                         };
@@ -195,6 +212,8 @@ fn detect_build_command(dir: &Path) -> Option<Vec<String>> {
                 {
                     let runner = if dir.join("pnpm-lock.yaml").exists() {
                         "pnpm"
+                    } else if dir.join("yarn.lock").exists() {
+                        "yarn"
                     } else {
                         "npm"
                     };
@@ -387,6 +406,19 @@ mod tests {
         std::fs::write(dir.path().join("pnpm-lock.yaml"), "lockfileVersion: 9").unwrap();
         let runner = detect_test_runner(dir.path());
         assert_eq!(runner, Some(vec!["pnpm".to_string(), "test".to_string()]));
+    }
+
+    #[test]
+    fn detect_yarn_test_runner() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("package.json"),
+            r#"{"scripts": {"test": "jest"}}"#,
+        )
+        .unwrap();
+        std::fs::write(dir.path().join("yarn.lock"), "# yarn lockfile v1").unwrap();
+        let runner = detect_test_runner(dir.path());
+        assert_eq!(runner, Some(vec!["yarn".to_string(), "test".to_string()]));
     }
 
     #[test]
